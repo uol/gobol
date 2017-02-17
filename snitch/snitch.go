@@ -131,8 +131,9 @@ func (st *Stats) clientUDP() {
 	conn, err := net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
 	if err != nil {
 		st.logger.Error("connect: ", err)
+	} else {
+		defer conn.Close()
 	}
-	defer conn.Close()
 
 	for {
 		select {
@@ -145,15 +146,26 @@ func (st *Stats) clientUDP() {
 					"timestamp": messageData.Timestamp,
 				},
 			).Info("received")
+
 			payload, err := json.Marshal(messageData)
 			if err != nil {
 				st.logger.Error(err)
 			}
-			_, err = conn.Write(payload)
-			if err != nil {
-				st.logger.Error(err)
+
+			if conn != nil {
+				_, err = conn.Write(payload)
+				if err != nil {
+					st.logger.Error(err)
+				} else {
+					st.logger.Debug(string(payload))
+				}
 			} else {
-				st.logger.Debug(string(payload))
+				conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
+				if err != nil {
+					st.logger.Error("connect: ", err)
+				} else {
+					defer conn.Close()
+				}
 			}
 		}
 	}
