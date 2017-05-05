@@ -59,7 +59,7 @@ func errUnmarshal(f string, e error) gobol.Error {
 	return errBasic(f, "Wrong JSON format", http.StatusBadRequest, e)
 }
 
-func SetLooger(l *logrus.Logger) {
+func SetLogger(l *logrus.Logger) {
 	logger = l
 }
 
