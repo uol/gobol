@@ -8,7 +8,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type esResponse struct {
@@ -30,7 +30,7 @@ type consumer struct {
 	server string
 	index  string
 	client *http.Client
-	logger *logrus.Logger
+	logger *zap.Logger
 
 	input    chan *esRequest
 	shutdown chan bool
@@ -40,12 +40,13 @@ func (c *consumer) loop() error {
 	for {
 		select {
 		case request := <-c.input:
-			c.logger.WithFields(logrus.Fields{
-				"function":   "loop",
-				"sctructure": "consumer",
-				"index":      c.index,
-				"rindex":     request.index,
-			}).Debugf("Request executed")
+			c.logger.Debug(
+				"Request executed",
+				zap.String("function", "loop"),
+				zap.String("sctructure", "consumer"),
+				zap.String("index", c.index),
+				zap.String("rindex", request.index),
+			)
 			status, content, err := c.Request(c.server, request.method,
 				path.Join("/", request.index, request.path), request.body)
 			request.answ <- esResponse{
