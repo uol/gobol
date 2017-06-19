@@ -2,19 +2,22 @@ package snitch
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/robfig/cron"
-
 	"go.uber.org/zap"
 )
 
 func keyFromMetricID(metric string, tags map[string]string) string {
 	merged := []string{}
 	for k, v := range tags {
-		merged = append(merged, fmt.Sprintf("%s=%s", k, v))
+		s := make([]byte, len(k)+len(v)+1)
+		copy(s, k)
+		copy(s[len(k):], "=")
+		copy(s[len(k)+1:], v)
+		//merged = append(merged, fmt.Sprintf("%s=%s", k, v))
+		merged = append(merged, string(s))
 	}
 	sort.Strings(merged)
 	merged = append(merged, metric)
@@ -34,13 +37,14 @@ func (st *Stats) getPoint(
 	aggregation, interval string,
 	keep, nullable bool,
 ) (*CustomPoint, error) {
-	st.mutex.Lock()
-	defer st.mutex.Unlock()
 
 	key := keyFromMetricID(metricName, tags)
+	st.mtx.RLock()
 	if metric, ok := st.points[key]; ok {
+		st.mtx.RUnlock()
 		return metric, nil
 	}
+	st.mtx.RUnlock()
 
 	if _, err := cron.Parse(interval); err != nil {
 		return nil, err
@@ -55,7 +59,7 @@ func (st *Stats) getPoint(
 		aggregation: aggregation,
 		keepValue:   keep,
 		sendOnNull:  nullable,
-		valNull:     true,
+		valNull:     1,
 		interval:    interval,
 		sender:      st.receiver,
 		pre: func(p *CustomPoint) bool {
@@ -64,13 +68,16 @@ func (st *Stats) getPoint(
 			}
 			switch p.aggregation {
 			case "avg":
-				if p.GetValue() != 0 && p.GetCount() != 0 {
-					p.SetValue(p.GetValue() / float64(p.GetCount()))
+				y := p.GetValue()
+				x := p.GetCount()
+				if y != 0 && x != 0 {
+					p.SetValue(y / float64(x))
 				}
 			}
 			return true
 		},
 		post: func(p *CustomPoint) {
+
 			st.logger.Info(
 				"collected",
 				zap.String("metric", p.metric),
@@ -97,7 +104,10 @@ func (st *Stats) getPoint(
 		metric.tags[k] = v
 	}
 
+	st.mtx.Lock()
 	st.points[key] = metric
+	st.mtx.Unlock()
+
 	st.cron.AddJob(interval, metric)
 	return metric, nil
 }
