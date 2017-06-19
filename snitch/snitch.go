@@ -11,7 +11,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/robfig/cron"
@@ -35,7 +34,7 @@ type Stats struct {
 	hBuffer  []message
 	receiver chan message
 
-	mutex sync.Mutex
+	mtx sync.RWMutex
 }
 
 // New creates a new stats
@@ -100,9 +99,11 @@ func (st *Stats) start(runtime bool) {
 		return
 	}
 
+	st.mtx.RLock()
 	for _, p := range st.points {
 		st.cron.AddJob(p.interval, p)
 	}
+	st.mtx.RUnlock()
 
 	if st.proto == "udp" {
 		go st.clientUDP()
@@ -132,36 +133,40 @@ func (st *Stats) clientUDP() {
 	conn, err := net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
 	if err != nil {
 		st.logger.Error("connect", zap.Error(err))
+	} else {
+		defer conn.Close()
 	}
 
 	for {
 		select {
 		case messageData := <-st.receiver:
-			for i := 0; i < 10; i++ {
-				if conn == nil {
-					conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
-					if err != nil {
-						st.logger.Error("connect", zap.Error(err))
-						time.Sleep(time.Second * 10)
-						continue
-					}
-				}
+			st.logger.Info(
+				"received",
+				zap.String("metric", messageData.Metric),
+				zap.String("tags", fmt.Sprintf("%v", messageData.Tags)),
+				zap.Float64("value", messageData.Value),
+				zap.Int64("timestamp", messageData.Timestamp),
+			)
 
-				payload, err := json.Marshal(messageData)
-				if err != nil {
-					st.logger.Error("marshal", zap.Error(err))
-					continue
-				}
+			payload, err := json.Marshal(messageData)
+			if err != nil {
+				st.logger.Sugar().Error(err)
+			}
 
+			if conn != nil {
 				_, err = conn.Write(payload)
 				if err != nil {
-					st.logger.Error("write", zap.Error(err))
-					conn.Close()
-					continue
+					st.logger.Sugar().Error(err)
+				} else {
+					st.logger.Sugar().Debug(string(payload))
 				}
-
-				st.logger.Debug(string(payload))
-				break
+			} else {
+				conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
+				if err != nil {
+					st.logger.Sugar().Error("connect: ", err)
+				} else {
+					defer conn.Close()
+				}
 			}
 		}
 	}
@@ -180,7 +185,7 @@ func (st *Stats) clientHTTP() {
 			st.logger.Info(
 				"received",
 				zap.String("metric", messageData.Metric),
-				zap.Any("tags", messageData.Tags),
+				zap.String("tags", fmt.Sprintf("%v", messageData.Tags)),
 				zap.Float64("value", messageData.Value),
 				zap.Int64("timestamp", messageData.Timestamp),
 			)
@@ -188,23 +193,23 @@ func (st *Stats) clientHTTP() {
 		case <-ticker.C:
 			payload, err := json.Marshal(st.hBuffer)
 			if err != nil {
-				st.logger.Error("", zap.Error(err))
+				st.logger.Sugar().Error(err)
 				break
 			}
 			req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 			if err != nil {
-				st.logger.Error("", zap.Error(err))
+				st.logger.Sugar().Error(err)
 				break
 			}
 			resp, err := client.Do(req)
 			if err != nil {
-				st.logger.Error("", zap.Error(err))
+				st.logger.Sugar().Error(err)
 				break
 			}
 			if resp.StatusCode != http.StatusNoContent {
 				reqResponse, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
-					st.logger.Error("", zap.Error(err))
+					st.logger.Sugar().Error(err)
 				}
 				st.logger.Debug(string(reqResponse))
 			}
@@ -212,10 +217,4 @@ func (st *Stats) clientHTTP() {
 			resp.Body.Close()
 		}
 	}
-}
-
-func getTimeInMilliSeconds() int64 {
-	var tv syscall.Timeval
-	syscall.Gettimeofday(&tv)
-	return (int64(tv.Sec)*1e3 + int64(tv.Usec)/1e3)
 }
