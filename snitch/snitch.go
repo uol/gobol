@@ -11,18 +11,18 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/robfig/cron"
+
+	"go.uber.org/zap"
 )
 
 // Stats holds several informations.
 // The timeseries backend address and port. The POST interval. The default tags
 // to be added to all points and a map of all points.
 type Stats struct {
-	logger   *logrus.Logger
+	logger   *zap.Logger
 	cron     *cron.Cron
 	address  string
 	port     string
@@ -34,11 +34,11 @@ type Stats struct {
 	hBuffer  []message
 	receiver chan message
 
-	mutex sync.Mutex
+	mtx sync.RWMutex
 }
 
 // New creates a new stats
-func New(logger *logrus.Logger, settings Settings) (*Stats, error) {
+func New(logger *zap.Logger, settings Settings) (*Stats, error) {
 	if settings.Address == "" {
 		return nil, errors.New("address is required")
 	}
@@ -99,9 +99,11 @@ func (st *Stats) start(runtime bool) {
 		return
 	}
 
+	st.mtx.RLock()
 	for _, p := range st.points {
 		st.cron.AddJob(p.interval, p)
 	}
+	st.mtx.RUnlock()
 
 	if st.proto == "udp" {
 		go st.clientUDP()
@@ -130,42 +132,37 @@ func (st *Stats) runtimeLoop() {
 func (st *Stats) clientUDP() {
 	conn, err := net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
 	if err != nil {
-		st.logger.Error("connect: ", err)
-	} else {
-		defer conn.Close()
+		st.logger.Error("connect", zap.Error(err))
 	}
 
 	for {
 		select {
 		case messageData := <-st.receiver:
-			st.logger.WithFields(
-				logrus.Fields{
-					"metric":    messageData.Metric,
-					"tags":      messageData.Tags,
-					"value":     messageData.Value,
-					"timestamp": messageData.Timestamp,
-				},
-			).Info("received")
+			for i := 0; i < 10; i++ {
+				if conn == nil {
+					conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
+					if err != nil {
+						st.logger.Error("connect", zap.Error(err))
+						time.Sleep(time.Second * 10)
+						continue
+					}
+				}
 
-			payload, err := json.Marshal(messageData)
-			if err != nil {
-				st.logger.Error(err)
-			}
+				payload, err := json.Marshal(messageData)
+				if err != nil {
+					st.logger.Error("marshal", zap.Error(err))
+					continue
+				}
 
-			if conn != nil {
 				_, err = conn.Write(payload)
 				if err != nil {
-					st.logger.Error(err)
-				} else {
-					st.logger.Debug(string(payload))
+					st.logger.Error("write", zap.Error(err))
+					conn.Close()
+					continue
 				}
-			} else {
-				conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
-				if err != nil {
-					st.logger.Error("connect: ", err)
-				} else {
-					defer conn.Close()
-				}
+
+				st.logger.Debug(string(payload))
+				break
 			}
 		}
 	}
@@ -181,35 +178,34 @@ func (st *Stats) clientHTTP() {
 	for {
 		select {
 		case messageData := <-st.receiver:
-			st.logger.WithFields(
-				logrus.Fields{
-					"metric":    messageData.Metric,
-					"tags":      messageData.Tags,
-					"value":     messageData.Value,
-					"timestamp": messageData.Timestamp,
-				},
-			).Info("received")
+			st.logger.Info(
+				"received",
+				zap.String("metric", messageData.Metric),
+				zap.Any("tags", messageData.Tags),
+				zap.Float64("value", messageData.Value),
+				zap.Int64("timestamp", messageData.Timestamp),
+			)
 			st.hBuffer = append(st.hBuffer, messageData)
 		case <-ticker.C:
 			payload, err := json.Marshal(st.hBuffer)
 			if err != nil {
-				st.logger.Error(err)
+				st.logger.Error("", zap.Error(err))
 				break
 			}
 			req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 			if err != nil {
-				st.logger.Error(err)
+				st.logger.Error("", zap.Error(err))
 				break
 			}
 			resp, err := client.Do(req)
 			if err != nil {
-				st.logger.Error(err)
+				st.logger.Error("", zap.Error(err))
 				break
 			}
 			if resp.StatusCode != http.StatusNoContent {
 				reqResponse, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
-					st.logger.Error(err)
+					st.logger.Error("", zap.Error(err))
 				}
 				st.logger.Debug(string(reqResponse))
 			}
@@ -217,10 +213,4 @@ func (st *Stats) clientHTTP() {
 			resp.Body.Close()
 		}
 	}
-}
-
-func getTimeInMilliSeconds() int64 {
-	var tv syscall.Timeval
-	syscall.Gettimeofday(&tv)
-	return (int64(tv.Sec)*1e3 + int64(tv.Usec)/1e3)
 }
