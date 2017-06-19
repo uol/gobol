@@ -133,40 +133,36 @@ func (st *Stats) clientUDP() {
 	conn, err := net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
 	if err != nil {
 		st.logger.Error("connect", zap.Error(err))
-	} else {
-		defer conn.Close()
 	}
 
 	for {
 		select {
 		case messageData := <-st.receiver:
-			st.logger.Info(
-				"received",
-				zap.String("metric", messageData.Metric),
-				zap.String("tags", fmt.Sprintf("%v", messageData.Tags)),
-				zap.Float64("value", messageData.Value),
-				zap.Int64("timestamp", messageData.Timestamp),
-			)
+			for i := 0; i < 10; i++ {
+				if conn == nil {
+					conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
+					if err != nil {
+						st.logger.Error("connect", zap.Error(err))
+						time.Sleep(time.Second * 10)
+						continue
+					}
+				}
 
-			payload, err := json.Marshal(messageData)
-			if err != nil {
-				st.logger.Sugar().Error(err)
-			}
+				payload, err := json.Marshal(messageData)
+				if err != nil {
+					st.logger.Error("marshal", zap.Error(err))
+					continue
+				}
 
-			if conn != nil {
 				_, err = conn.Write(payload)
 				if err != nil {
-					st.logger.Sugar().Error(err)
-				} else {
-					st.logger.Sugar().Debug(string(payload))
+					st.logger.Error("write", zap.Error(err))
+					conn.Close()
+					continue
 				}
-			} else {
-				conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
-				if err != nil {
-					st.logger.Sugar().Error("connect: ", err)
-				} else {
-					defer conn.Close()
-				}
+
+				st.logger.Debug(string(payload))
+				break
 			}
 		}
 	}
@@ -185,7 +181,7 @@ func (st *Stats) clientHTTP() {
 			st.logger.Info(
 				"received",
 				zap.String("metric", messageData.Metric),
-				zap.String("tags", fmt.Sprintf("%v", messageData.Tags)),
+				zap.Any("tags", messageData.Tags),
 				zap.Float64("value", messageData.Value),
 				zap.Int64("timestamp", messageData.Timestamp),
 			)
@@ -193,23 +189,23 @@ func (st *Stats) clientHTTP() {
 		case <-ticker.C:
 			payload, err := json.Marshal(st.hBuffer)
 			if err != nil {
-				st.logger.Sugar().Error(err)
+				st.logger.Error("", zap.Error(err))
 				break
 			}
 			req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 			if err != nil {
-				st.logger.Sugar().Error(err)
+				st.logger.Error("", zap.Error(err))
 				break
 			}
 			resp, err := client.Do(req)
 			if err != nil {
-				st.logger.Sugar().Error(err)
+				st.logger.Error("", zap.Error(err))
 				break
 			}
 			if resp.StatusCode != http.StatusNoContent {
 				reqResponse, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
-					st.logger.Sugar().Error(err)
+					st.logger.Error("", zap.Error(err))
 				}
 				st.logger.Debug(string(reqResponse))
 			}
