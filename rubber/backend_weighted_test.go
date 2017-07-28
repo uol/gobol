@@ -2,12 +2,12 @@ package rubber
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
+
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,8 +18,7 @@ const TestSize = 10
 var _ Backend = &weightedBackend{}
 
 func testWeightedBackend() *weightedBackend {
-	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger := zap.NewNop()
 	backend := &weightedBackend{
 		logger: logger,
 		client: &http.Client{

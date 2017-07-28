@@ -23,7 +23,8 @@ type esRequest struct {
 	path   string
 	body   io.Reader
 
-	answ chan esResponse
+	answ    chan esResponse
+	retries uint64
 }
 
 type consumer struct {
@@ -34,6 +35,9 @@ type consumer struct {
 
 	input    chan *esRequest
 	shutdown chan bool
+
+	errorTimeout time.Duration
+	maxRetries   uint64
 }
 
 func (c *consumer) loop() error {
@@ -49,6 +53,12 @@ func (c *consumer) loop() error {
 			)
 			status, content, err := c.Request(c.server, request.method,
 				path.Join("/", request.index, request.path), request.body)
+			if err != nil && request.retries < c.maxRetries {
+				request.retries++
+				c.input <- request
+				time.Sleep(c.errorTimeout)
+				continue
+			}
 			request.answ <- esResponse{
 				status:  status,
 				content: content,
