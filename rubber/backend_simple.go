@@ -37,7 +37,7 @@ type singleServerBackend struct {
 	retriesCounter uint64
 }
 
-func (es *singleServerBackend) GetRetries() uint64 { return atomic.SwapUint64(&es.retriesCounter, 0) }
+func (es *singleServerBackend) CountRetries() uint64 { return atomic.SwapUint64(&es.retriesCounter, 0) }
 
 func (es *singleServerBackend) Request(index, method, urlPath string, body io.Reader) (int, []byte, error) {
 	var retries uint64

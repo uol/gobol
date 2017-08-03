@@ -234,6 +234,4 @@ func (es *weightedBackend) Request(index, method, path string, body io.Reader) (
 	return response.status, response.content, response.err
 }
 
-func (es *weightedBackend) GetRetries() uint64 {
-	return atomic.SwapUint64(&es.retriesCounter, 0)
-}
+func (es *weightedBackend) CountRetries() uint64 { return atomic.SwapUint64(&es.retriesCounter, 0) }
