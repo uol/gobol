@@ -39,7 +39,7 @@ curl --silent "${MASTER}:9200/_cat/nodes"
 export MASTER INTEGRATION="true"
 
 echo "Start test: $(date)"
-go test -v -bench=. -benchmem -timeout=5h
+time go test -v -bench=. -benchmem -timeout=5h
 exitcode=$?
 
 sleep "30s"
