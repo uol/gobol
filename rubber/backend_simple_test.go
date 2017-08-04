@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/Sirupsen/logrus"
 )
 
@@ -14,8 +16,7 @@ import (
 var _ Backend = &singleServerBackend{}
 
 func testSimpleBackend() *singleServerBackend {
-	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger := zap.NewNop()
 	return &singleServerBackend{
 		log:     logger,
 		nodes:   []string{fmt.Sprintf("%s:9200", master)},

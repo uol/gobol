@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -32,9 +33,14 @@ type singleServerBackend struct {
 	timeout time.Duration
 
 	client *http.Client
+
+	retriesCounter uint64
 }
 
+func (es *singleServerBackend) CountRetries() uint64 { return atomic.SwapUint64(&es.retriesCounter, 0) }
+
 func (es *singleServerBackend) Request(index, method, urlPath string, body io.Reader) (int, []byte, error) {
+	var retries uint64
 
 	ctxt := es.log.With(
 		zap.String("struct", "singleServerBackend"),
@@ -49,6 +55,7 @@ func (es *singleServerBackend) Request(index, method, urlPath string, body io.Re
 
 		req, err := http.NewRequest(method, url, body)
 		if err != nil {
+			atomic.AddUint64(&es.retriesCounter, retries)
 			return 0, []byte{}, err
 		}
 
@@ -60,6 +67,7 @@ func (es *singleServerBackend) Request(index, method, urlPath string, body io.Re
 
 		if err != nil {
 			ctxt.Error("trying next node...", zap.Error(err))
+			retries++
 			continue
 		}
 		defer resp.Body.Close()
@@ -71,16 +79,19 @@ func (es *singleServerBackend) Request(index, method, urlPath string, body io.Re
 
 		reqResponse, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
+			atomic.AddUint64(&es.retriesCounter, retries)
 			return 0, []byte{}, err
 		}
 
 		if resp.StatusCode < http.StatusInternalServerError {
+			atomic.AddUint64(&es.retriesCounter, retries)
 			return resp.StatusCode, reqResponse, nil
 		}
 
 		ctxt.Error(string(reqResponse))
 		ctxt.Error("trying next node...")
+		retries++
 	}
-
+	atomic.AddUint64(&es.retriesCounter, retries)
 	return 0, []byte{}, errors.New("elasticsearch: request failed on all nodes")
 }

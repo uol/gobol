@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,6 +22,11 @@ type weightedBackend struct {
 
 	seed  string
 	limit int
+
+	errorTimeout time.Duration
+	maxRetries   uint64
+
+	retriesCounter uint64
 }
 
 // CreateWeightedBackend creates a backend that directs requests for a given shard to its server
@@ -34,6 +40,9 @@ func CreateWeightedBackend(settings Settings, logger *zap.Logger) (Backend, erro
 		indices:   make(map[string]chan *esRequest),
 		seed:      settings.Seed,
 		limit:     32,
+
+		maxRetries:   3,
+		errorTimeout: 3 * time.Second,
 	}
 	if err := backend.start(); err != nil {
 		return nil, err
@@ -142,6 +151,9 @@ func (es *weightedBackend) start() error {
 				logger:   es.logger,
 				input:    es.getOrCreateIndex(index),
 				shutdown: make(chan bool),
+
+				maxRetries:   es.maxRetries,
+				errorTimeout: es.errorTimeout,
 			}
 			consumers = append(consumers, c)
 			go c.loop()
@@ -161,6 +173,9 @@ func (es *weightedBackend) start() error {
 			logger:   es.logger,
 			input:    channel,
 			shutdown: make(chan bool),
+
+			maxRetries:   es.maxRetries,
+			errorTimeout: es.errorTimeout,
 		}
 		consumers = append(consumers, c)
 		go c.loop()
@@ -214,5 +229,9 @@ func (es *weightedBackend) Request(index, method, path string, body io.Reader) (
 	}
 	channel <- &request
 	response := <-request.answ
+
+	atomic.AddUint64(&es.retriesCounter, request.retries)
 	return response.status, response.content, response.err
 }
+
+func (es *weightedBackend) CountRetries() uint64 { return atomic.SwapUint64(&es.retriesCounter, 0) }

@@ -2,13 +2,14 @@ package rubber
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"testing"
+	"time"
 
-	"github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,8 +23,7 @@ func TestMain(m *testing.M) {
 }
 
 func createTestConsumer() *consumer {
-	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger := zap.NewNop()
 
 	return &consumer{
 		server: fmt.Sprintf("%s:9200", master),
@@ -34,6 +34,9 @@ func createTestConsumer() *consumer {
 
 		input:    make(chan *esRequest),
 		shutdown: make(chan bool),
+
+		maxRetries:   10,
+		errorTimeout: 3 * time.Second,
 	}
 }
 

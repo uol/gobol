@@ -2,24 +2,27 @@ package rubber
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
+
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
-const TestSize = 10
+const (
+	TestSize = 10
+
+	DefaultUpdate = time.Second * 10
+)
 
 // This mostly tests compilation
 var _ Backend = &weightedBackend{}
 
-func testWeightedBackend() *weightedBackend {
-	logger := logrus.New()
-	logger.Out = ioutil.Discard
+func testWeightedBackend(update time.Duration) *weightedBackend {
+	logger := zap.NewNop()
 	backend := &weightedBackend{
 		logger: logger,
 		client: &http.Client{
@@ -29,9 +32,12 @@ func testWeightedBackend() *weightedBackend {
 		indices:   make(map[string]chan *esRequest),
 		seed:      fmt.Sprintf("%s:9200", master),
 		limit:     1024,
+
+		maxRetries:   1,
+		errorTimeout: 3 * time.Second,
 	}
 	backend.start()
-	go backend.updateLoop(time.Second * 10)
+	go backend.updateLoop(update)
 	return backend
 }
 
@@ -67,8 +73,25 @@ func createIndices() ([]string, error) {
 	return indices, nil
 }
 
+func TestFailCall(t *testing.T) {
+	backend := testWeightedBackend(time.Minute * 5)
+	backend.client.Timeout = time.Second
+	es := Create(backend)
+	assert.NotNil(t, es)
+	time.Sleep(5 * time.Second)
+
+	for index := range backend.consumers {
+		backend.consumers[index].server = "192.168.0.1:1700"
+	}
+	status, _, err := es.Request(NoIndex, "GET", "_cat/nodes", nil)
+
+	assert.Error(t, err)
+	assert.NotEqual(t, http.StatusOK, status)
+	assert.Equal(t, backend.maxRetries, es.CountRetries())
+}
+
 func TestWeightedIntegration(t *testing.T) {
-	backend := testWeightedBackend()
+	backend := testWeightedBackend(DefaultUpdate)
 	es := Create(backend)
 	assert.NotNil(t, es)
 	indices, err := createIndices()
@@ -105,7 +128,7 @@ func TestWeightedIndexCreation(t *testing.T) {
 	var (
 		index = uuid.New()
 	)
-	backend := testWeightedBackend()
+	backend := testWeightedBackend(DefaultUpdate)
 	es := Create(backend)
 	assert.NotNil(t, es)
 

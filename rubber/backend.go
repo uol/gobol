@@ -24,6 +24,7 @@ const (
 // Backend defines a way to connect to elasticsearch
 type Backend interface {
 	Request(index, method, path string, body io.Reader) (int, []byte, error)
+	CountRetries() uint64
 }
 
 // Elastic is a wrapper that creates helper functions around the backend
