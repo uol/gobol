@@ -173,7 +173,7 @@ func (st *Stats) clientHTTP() {
 		Timeout: st.timeout,
 	}
 
-	url := fmt.Sprintf("%v:%v/v2/points", st.address, st.port)
+	url := fmt.Sprintf("%v:%v/api/put", st.address, st.port)
 	ticker := time.NewTicker(st.postInt)
 	for {
 		select {
