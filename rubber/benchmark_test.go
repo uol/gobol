@@ -60,5 +60,5 @@ func BenchmarkSimpleBackend(b *testing.B) {
 	benchmarkBackend(b, testSimpleBackend())
 }
 func BenchmarkWeigthedBackend(b *testing.B) {
-	benchmarkBackend(b, testWeightedBackend())
+	benchmarkBackend(b, testWeightedBackend(DefaultUpdate))
 }
