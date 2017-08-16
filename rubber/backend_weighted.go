@@ -39,7 +39,7 @@ func CreateWeightedBackend(settings Settings, logger *zap.Logger) (Backend, erro
 		consumers: make([]*consumer, 0),
 		indices:   make(map[string]chan *esRequest),
 		seed:      settings.Seed,
-		limit:     32,
+		limit:     settings.Limit,
 
 		maxRetries:   3,
 		errorTimeout: 3 * time.Second,
@@ -224,7 +224,7 @@ func (es *weightedBackend) Request(index, method, path string, body io.Reader) (
 	if !ok {
 		return 0, nil, errors.New("Couldn't choose elasticsearch server")
 	}
-	if len(channel) >= es.limit-20 {
+	if len(channel) >= es.limit {
 		return http.StatusTooManyRequests, nil, errors.New("Too many requests on the server")
 	}
 	channel <- &request

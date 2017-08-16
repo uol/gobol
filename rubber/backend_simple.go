@@ -20,7 +20,8 @@ type Settings struct {
 	Preferred string
 
 	// Weighted Settings
-	Seed string
+	Seed  string
+	Limit int
 
 	// Generic settings
 	Timeout time.Duration
