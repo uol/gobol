@@ -4,8 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/consul/api"
+
+	"go.uber.org/zap"
 )
 
 type Locker interface {
@@ -28,7 +29,7 @@ type masterInfo struct {
 	found bool
 }
 
-func NewElection(log *logrus.Logger, settings ElectionSettings) (*Election, error) {
+func NewElection(log *zap.Logger, settings ElectionSettings) (*Election, error) {
 
 	if consulClient == nil {
 		return nil, errors.New("No agent connection found")
@@ -63,7 +64,7 @@ func NewElection(log *logrus.Logger, settings ElectionSettings) (*Election, erro
 }
 
 type Election struct {
-	log             *logrus.Logger
+	log             *zap.Logger
 	settings        ElectionSettings
 	client          *api.Client
 	agent           *api.Agent
@@ -133,16 +134,15 @@ func (l *Election) StopWathing() {
 
 func (l *Election) asyncLock() {
 
-	lf := map[string]interface{}{
-		"struct": "Election",
-		"func":   "asyncLock",
-	}
-
 	lc, err := l.getLock()
 
 	if err != nil {
 
-		l.log.WithFields(lf).Error(err)
+		l.log.Sugar().Error(
+			err.Error(),
+			zap.String("struct", "Election"),
+			zap.String("func", "asyncLock"),
+		)
 
 		time.Sleep(l.retry)
 
@@ -168,11 +168,6 @@ func (l *Election) asyncLock() {
 
 func (l *Election) asyncLockWatch() {
 
-	lf := map[string]interface{}{
-		"struct": "Election",
-		"func":   "asyncLockWatch",
-	}
-
 	for {
 		select {
 		case <-l.lockChan:
@@ -184,13 +179,21 @@ func (l *Election) asyncLockWatch() {
 			go l.lAct.LostMaster(nil)
 			err := l.lock.Unlock()
 			if err != nil {
-				l.log.WithFields(lf).Error(err)
+				l.log.Sugar().Error(
+					err.Error(),
+					zap.String("struct", "Election"),
+					zap.String("func", "asyncLockWatch"),
+				)
 			}
 
 			return
 
 		case <-l.stopLockWatch:
-			l.log.WithFields(lf).Info("leave received")
+			l.log.Info(
+				"leave received",
+				zap.String("struct", "Election"),
+				zap.String("func", "asyncLockWatch"),
+			)
 			return
 		}
 	}
@@ -199,20 +202,18 @@ func (l *Election) asyncLockWatch() {
 
 func (l *Election) getLock() (<-chan struct{}, error) {
 
-	lf := map[string]interface{}{
-		"struct": "Election",
-		"func":   "getLock",
-	}
-
 	nn, err := l.agent.NodeName()
 
 	if err != nil {
 		return nil, err
 	}
 
-	lf["nodeName"] = nn
-
-	l.log.WithFields(lf).Info("got node name: ", nn)
+	l.log.Info(
+		"got node name",
+		zap.String("node name", nn),
+		zap.String("struct", "Election"),
+		zap.String("func", "getLock"),
+	)
 
 	lock, err := l.client.LockOpts(&api.LockOptions{
 		Key:   l.settings.Key,
@@ -225,9 +226,19 @@ func (l *Election) getLock() (<-chan struct{}, error) {
 
 	l.lock = lock
 
-	l.log.WithFields(lf).Debug("lock struct created")
+	l.log.Debug(
+		"lock struct created",
+		zap.String("node name", nn),
+		zap.String("struct", "Election"),
+		zap.String("func", "getLock"),
+	)
 
-	l.log.WithFields(lf).Info("trying to aquire lock...")
+	l.log.Info(
+		"trying to aquire lock...",
+		zap.String("node name", nn),
+		zap.String("struct", "Election"),
+		zap.String("func", "getLock"),
+	)
 
 	l.locking = true
 
@@ -240,22 +251,27 @@ func (l *Election) getLock() (<-chan struct{}, error) {
 	}
 
 	if ll == nil {
-		l.log.WithFields(lf).Debug("no lock")
+		l.log.Debug(
+			"no lock",
+			zap.String("node name", nn),
+			zap.String("struct", "Election"),
+			zap.String("func", "getLock"),
+		)
 		return nil, nil
 	}
 
-	l.log.WithFields(lf).Info("got lock")
+	l.log.Info(
+		"got lock",
+		zap.String("node name", nn),
+		zap.String("struct", "Election"),
+		zap.String("func", "getLock"),
+	)
 
 	return ll, err
 
 }
 
 func (l *Election) asyncCheckMaster() {
-
-	lf := map[string]interface{}{
-		"struct": "Election",
-		"func":   "asyncCheckMaster",
-	}
 
 	l.watching = true
 
@@ -281,7 +297,11 @@ func (l *Election) asyncCheckMaster() {
 			go l.wmAct.MasterInfo(name, found, err)
 
 		case <-l.stopCheckMaster:
-			l.log.WithFields(lf).Info("leave received")
+			l.log.Info(
+				"leave received",
+				zap.String("struct", "Election"),
+				zap.String("func", "asyncCheckMaster"),
+			)
 			return
 		}
 	}
