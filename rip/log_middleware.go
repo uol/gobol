@@ -10,6 +10,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/uol/gobol/snitch"
+
 	"go.uber.org/zap"
 )
 
