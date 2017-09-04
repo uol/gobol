@@ -54,10 +54,11 @@ func (mkv *MKV) Put(path string, value []byte) error {
 
 	m, err := kv.Put(p, nil)
 	if err != nil {
-		mkv.log.Sugar().Error(
+		mkv.log.Error(
 			err.Error(),
 			zap.String("struct", "MKV"),
 			zap.String("func", "Put"),
+			zap.Error(err),
 		)
 		return err
 	}
@@ -78,10 +79,11 @@ func (mkv *MKV) Get(path string) ([]byte, error) {
 
 	pair, m, err := kv.Get(path, nil)
 	if err != nil {
-		mkv.log.Sugar().Error(
+		mkv.log.Error(
 			err.Error(),
 			zap.String("struct", "MKV"),
 			zap.String("func", "Get"),
+			zap.Error(err),
 		)
 		return nil, err
 	}

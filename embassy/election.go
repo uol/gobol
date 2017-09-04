@@ -138,10 +138,11 @@ func (l *Election) asyncLock() {
 
 	if err != nil {
 
-		l.log.Sugar().Error(
+		l.log.Error(
 			err.Error(),
 			zap.String("struct", "Election"),
 			zap.String("func", "asyncLock"),
+			zap.Error(err),
 		)
 
 		time.Sleep(l.retry)
@@ -179,10 +180,11 @@ func (l *Election) asyncLockWatch() {
 			go l.lAct.LostMaster(nil)
 			err := l.lock.Unlock()
 			if err != nil {
-				l.log.Sugar().Error(
+				l.log.Error(
 					err.Error(),
 					zap.String("struct", "Election"),
 					zap.String("func", "asyncLockWatch"),
+					zap.Error(err),
 				)
 			}
 
@@ -305,9 +307,6 @@ func (l *Election) asyncCheckMaster() {
 			return
 		}
 	}
-
-	return
-
 }
 
 func (l *Election) getMasterInfo() (string, bool, error) {

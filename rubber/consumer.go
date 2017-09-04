@@ -97,11 +97,12 @@ func (c *consumer) Request(server, method, urlPath string, body io.Reader) (int,
 
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
-		c.logger.Sugar().Error(
+		c.logger.Error(
 			err.Error(),
 			zap.String("package", "rubber"),
 			zap.String("structure", "consumer"),
 			zap.String("function", "Request"),
+			zap.Error(err),
 		)
 		return 0, nil, err
 	}
@@ -110,11 +111,12 @@ func (c *consumer) Request(server, method, urlPath string, body io.Reader) (int,
 	// end := time.Now()
 
 	if err != nil {
-		c.logger.Sugar().Error(
+		c.logger.Error(
 			err.Error(),
 			zap.String("package", "rubber"),
 			zap.String("structure", "consumer"),
 			zap.String("function", "Request"),
+			zap.Error(err),
 		)
 		return 0, nil, err
 	}

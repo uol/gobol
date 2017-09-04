@@ -141,10 +141,11 @@ func (srvc *Service) PassTTL() {
 
 	agent := srvc.client.Agent()
 	if err := agent.PassTTL(srvc.ttlName, ""); err != nil {
-		srvc.log.Sugar().Error(
+		srvc.log.Error(
 			err.Error(),
 			zap.String("struct", "Service"),
 			zap.String("func", "PassTTL"),
+			zap.Error(err),
 		)
 	}
 }
@@ -153,10 +154,11 @@ func (srvc *Service) WarnTTL() {
 
 	agent := srvc.client.Agent()
 	if err := agent.WarnTTL(srvc.ttlName, ""); err != nil {
-		srvc.log.Sugar().Error(
+		srvc.log.Error(
 			err.Error(),
 			zap.String("struct", "Service"),
 			zap.String("func", "WarnTTL"),
+			zap.Error(err),
 		)
 	}
 }
@@ -165,10 +167,11 @@ func (srvc *Service) FailTTL() {
 
 	agent := srvc.client.Agent()
 	if err := agent.FailTTL(srvc.ttlName, ""); err != nil {
-		srvc.log.Sugar().Error(
+		srvc.log.Error(
 			err.Error(),
 			zap.String("struct", "Service"),
 			zap.String("func", "FailTTL"),
+			zap.Error(err),
 		)
 	}
 }
