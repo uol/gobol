@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/robfig/cron"
-
 	"go.uber.org/zap"
 )
 
@@ -133,36 +132,30 @@ func (st *Stats) clientUDP() {
 	conn, err := net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
 	if err != nil {
 		st.logger.Error("connect", zap.Error(err))
+	} else {
+		defer conn.Close()
 	}
 
 	for {
 		select {
 		case messageData := <-st.receiver:
-			for i := 0; i < 10; i++ {
-				if conn == nil {
-					conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
-					if err != nil {
-						st.logger.Error("connect", zap.Error(err))
-						time.Sleep(time.Second * 10)
-						continue
-					}
-				}
+			payload, err := json.Marshal(messageData)
+			if err != nil {
+				st.logger.Error("marshal", zap.Error(err))
+			}
 
-				payload, err := json.Marshal(messageData)
-				if err != nil {
-					st.logger.Error("marshal", zap.Error(err))
-					continue
-				}
-
+			if conn != nil {
 				_, err = conn.Write(payload)
 				if err != nil {
 					st.logger.Error("write", zap.Error(err))
-					conn.Close()
-					continue
 				}
-
-				st.logger.Debug(string(payload))
-				break
+			} else {
+				conn, err = net.Dial("udp", fmt.Sprintf("%v:%v", st.address, st.port))
+				if err != nil {
+					st.logger.Error("connect", zap.Error(err))
+				} else {
+					defer conn.Close()
+				}
 			}
 		}
 	}
@@ -178,13 +171,6 @@ func (st *Stats) clientHTTP() {
 	for {
 		select {
 		case messageData := <-st.receiver:
-			st.logger.Info(
-				"received",
-				zap.String("metric", messageData.Metric),
-				zap.Any("tags", messageData.Tags),
-				zap.Float64("value", messageData.Value),
-				zap.Int64("timestamp", messageData.Timestamp),
-			)
 			st.hBuffer = append(st.hBuffer, messageData)
 		case <-ticker.C:
 			payload, err := json.Marshal(st.hBuffer)
