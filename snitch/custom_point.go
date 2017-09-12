@@ -91,7 +91,7 @@ func (p *CustomPoint) Run() {
 
 	ts := p.GetTimestamp()
 	if ts == 0 {
-		ts = time.Now().Unix()
+		ts = time.Now().UnixNano() / int64(time.Millisecond)
 	}
 
 	if send {
