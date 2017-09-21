@@ -108,11 +108,7 @@ func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reqLogger = reqLogger.With(zap.String("forward", f))
 	}
 
-	if status >= http.StatusBadRequest {
-		reqLogger.Error("completed handling request with errors")
-	} else {
-		reqLogger.Info("completed handling request")
-	}
+	reqLogger.Info("completed handling request")
 
 	tags := map[string]string{
 		"protocol": r.Proto,
