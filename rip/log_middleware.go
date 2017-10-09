@@ -10,6 +10,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/uol/gobol/snitch"
+
 	"go.uber.org/zap"
 )
 
@@ -44,6 +45,7 @@ func (w *LogResponseWriter) Header() http.Header {
 }
 
 func NewLogMiddleware(service, system string, logger *zap.Logger, sts *snitch.Stats, next http.Handler) *LogHandler {
+	logger = logger.WithOptions(zap.AddStacktrace(zap.PanicLevel))
 	return &LogHandler{
 		service: service,
 		system:  system,
@@ -107,7 +109,7 @@ func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reqLogger = reqLogger.With(zap.String("forward", f))
 	}
 
-	if status >= http.StatusBadRequest {
+	if status >= http.StatusInternalServerError {
 		reqLogger.Error("completed handling request with errors")
 	} else {
 		reqLogger.Info("completed handling request")
