@@ -123,17 +123,6 @@ func Fail(w http.ResponseWriter, gerr gobol.Error) {
 	defer func() {
 		if r := recover(); r != nil {
 
-			if logger != nil {
-				logger.Sugar().Error(gerr.Message(), gerr.LogFields())
-			} else {
-				log.Println(gerr.Message())
-			}
-
-			if gerr.StatusCode() < 500 && gerr.Message() == "" {
-				w.WriteHeader(gerr.StatusCode())
-				return
-			}
-
 			ej := errorJSON{
 				Message: gerr.Message(),
 			}
