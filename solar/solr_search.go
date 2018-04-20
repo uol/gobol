@@ -1,4 +1,4 @@
-package solr
+package solar
 
 import (
 	"github.com/uol/go-solr/solr"
