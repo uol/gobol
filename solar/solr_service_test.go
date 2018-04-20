@@ -1,4 +1,4 @@
-package solr_test
+package solar_test
 
 import (
 	"errors"

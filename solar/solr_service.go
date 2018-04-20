@@ -1,4 +1,4 @@
-package solr
+package solar
 
 import (
 	"errors"
