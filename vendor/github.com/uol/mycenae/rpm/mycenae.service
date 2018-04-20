@@ -1,0 +1,14 @@
+[Unit]
+Description=Mycenae timeseries database
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/mycenae
+ExecStart=/opt/mycenae/bin/mycenae -config $CONFIG $DEV_MODE
+KillMode=process
+User=mycenae
+Group=mycenae
+
+[Install]
+Alias=mycenae.service
+WantedBy=multi-user.target

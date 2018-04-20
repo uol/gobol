@@ -1,22 +1,22 @@
-hash: c4c34c92ec8d4996d355597a0541c9ce386998345ea491cdef1c9df9702e35c1
-updated: 2018-04-03T20:47:57.449959917-03:00
+hash: baf38428a14ca914b522ebd61c7ac478b678366efb6177af671e8dec7a58a882
+updated: 2018-04-20T16:29:59.409710739-03:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
 - name: github.com/BurntSushi/toml
   version: b26d9c308763d68093482582cea63d69be07a0f0
 - name: github.com/gocql/gocql
-  version: 12e3a8c05db483441932e84ab6c35c339fb01de7
+  version: 31b0c9c712d21a8d5e1b3098c12a2fd41086ff30
   subpackages:
   - internal/lru
   - internal/murmur
   - internal/streams
 - name: github.com/golang/snappy
-  version: 553a641470496b2327abcac10b36396bd98e45c9
+  version: 427fb6fc07997f43afa32f35e850833760e489a7
 - name: github.com/hailocab/go-hostpool
   version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
 - name: github.com/hashicorp/consul
-  version: 9a494b5fb9c86180a5702e29c485df1507a47198
+  version: fb848fc48818f58690db09d14640513aa6bf3c02
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -41,14 +41,16 @@ imports:
   version: e790cca94e6cc75c7064b1332e63811d4aae1a53
 - name: github.com/robfig/cron
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
-- name: github.com/sendgrid/go-solr
-  version: e8b057df225b9521c04a855ab286552b716944e9
+- name: github.com/uol/go-solr
+  version: 921bd6da9ea4f5ae68f868791aa319c6e197bcb7
+  subpackages:
+  - solr
 - name: go.uber.org/atomic
   version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
 - name: go.uber.org/zap
-  version: 35aad584952c3e7020db7b839f6b102de6271f89
+  version: eeedf312bc6c57391d84767a4cd413f02a917974
   subpackages:
   - buffer
   - internal/bufferpool
@@ -56,7 +58,7 @@ imports:
   - internal/exit
   - zapcore
 - name: gopkg.in/inf.v0
-  version: d2d2541c53f18d2a059457998ce2876cc8e67cbf
+  version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
@@ -72,3 +74,11 @@ testImports:
   version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
   - assert
+- name: github.com/uol/mycenae
+  version: e17d5244c7cc78767257939c79335da1e0345bad
+  subpackages:
+  - lib/metadata
+  - lib/tserr
+  - lib/tsstats
+- name: gopkg.in/robfig/cron.v2
+  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4

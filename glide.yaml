@@ -20,8 +20,8 @@ import:
   - zapcore
 - package: gopkg.in/yaml.v2
   version: ^2.2.1
-- package: github.com/sendgrid/go-solr
-  version: ~1.0.24
+- package: github.com/uol/go-solr
+  version: ^0.6
 testImport:
 - package: github.com/stretchr/testify
   version: ^1.2.1
