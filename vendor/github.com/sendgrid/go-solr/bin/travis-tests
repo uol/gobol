@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-docker-compose run gotests /tmp/bin/solr-tests
