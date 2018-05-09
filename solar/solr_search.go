@@ -9,7 +9,7 @@ import (
 * @author rnojiri
 **/
 
-//buildBasicQuery - builds a basic query
+// buildBasicQuery - builds a basic query
 func (ss *SolrService) buildBasicQuery(collection, query, fields string, start, rows int) *solr.Query {
 
 	q := solr.NewQuery()
@@ -25,7 +25,7 @@ func (ss *SolrService) buildBasicQuery(collection, query, fields string, start, 
 	return q
 }
 
-//SimpleQuery - queries the solr
+// SimpleQuery - queries the solr
 func (ss *SolrService) SimpleQuery(collection, query, fields string, start, rows int) (*solr.SolrResult, error) {
 
 	si, err := ss.getSolrInterface(collection)
@@ -35,12 +35,15 @@ func (ss *SolrService) SimpleQuery(collection, query, fields string, start, rows
 
 	q := ss.buildBasicQuery(collection, query, fields, start, rows)
 	s := si.Search(q)
-	r, _ := s.Result(nil)
+	r, err := s.Result(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return r, nil
 }
 
-//Facet - facets the solr
+// Facets - facets the solr
 func (ss *SolrService) Facets(collection, query, fields string, start, rows int, facets ...string) (*solr.SolrResult, error) {
 
 	si, err := ss.getSolrInterface(collection)
@@ -56,7 +59,28 @@ func (ss *SolrService) Facets(collection, query, fields string, start, rows int,
 	}
 
 	s := si.Search(q)
-	r, _ := s.Result(nil)
+	r, err := s.Result(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// BlockJoinFacets - block join facets the solr
+func (ss *SolrService) BlockJoinFacets(collection, query, fields string, start, rows int) (*solr.SolrResult, error) {
+
+	si, err := ss.getSolrInterface(collection)
+	if err != nil {
+		return nil, err
+	}
+
+	q := ss.buildBasicQuery(collection, query, fields, start, rows)
+	s := si.Search(q)
+	r, err := s.BlockJoinFaceting(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return r, nil
 }
