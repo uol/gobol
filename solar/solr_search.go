@@ -75,41 +75,36 @@ func (ss *SolrService) FilteredQuery(collection, query, fields string, start, ro
 	return r, nil
 }
 
-// Facets - facets the solr
-func (ss *SolrService) Facets(collection, query, fields string, start, rows int, facets ...string) (*solr.SolrResult, error) {
+// addFacets - add facets to the query
+func (ss *SolrService) addFacets(q *solr.Query, facetFields []string) {
 
-	si, err := ss.getSolrInterface(collection)
-	if err != nil {
-		return nil, err
-	}
-
-	q := ss.buildBasicQuery(collection, query, fields, start, rows)
-	if facets != nil && len(facets) > 0 {
-		for _, facet := range facets {
-			q.AddFacet(facet)
+	if facetFields != nil && len(facetFields) > 0 {
+		for _, facetField := range facetFields {
+			q.AddFacet(facetField)
 		}
 	}
-
-	s := si.Search(q)
-	r, err := s.Result(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
 }
 
-// BlockJoinFacets - block join facets the solr
-func (ss *SolrService) BlockJoinFacets(collection, query, fields string, start, rows int) (*solr.SolrResult, error) {
+// Facets - get facets from solr
+func (ss *SolrService) Facets(collection, query, fields string, start, rows int, filterQueries []string, facetFields []string, blockJoin bool) (*solr.SolrResult, error) {
 
 	si, err := ss.getSolrInterface(collection)
 	if err != nil {
 		return nil, err
 	}
 
-	q := ss.buildBasicQuery(collection, query, fields, start, rows)
+	q := ss.buildFilteredQuery(collection, query, fields, start, rows, filterQueries)
+	ss.addFacets(q, facetFields)
+
 	s := si.Search(q)
-	r, err := s.BlockJoinFaceting(nil)
+
+	var r *solr.SolrResult
+	if blockJoin {
+		r, err = s.BlockJoinFaceting(nil)
+	} else {
+		r, err = s.Result(nil)
+	}
+
 	if err != nil {
 		return nil, err
 	}
