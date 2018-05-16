@@ -85,8 +85,18 @@ func (ss *SolrService) addFacets(q *solr.Query, facetFields []string) {
 	}
 }
 
+// addChildrenFacets - add facets to the query
+func (ss *SolrService) addChildrenFacets(q *solr.Query, facetFields []string) {
+
+	if facetFields != nil && len(facetFields) > 0 {
+		for _, facetField := range facetFields {
+			q.AddChildFacet(facetField)
+		}
+	}
+}
+
 // Facets - get facets from solr
-func (ss *SolrService) Facets(collection, query, fields string, start, rows int, filterQueries []string, facetFields []string, blockJoin bool) (*solr.SolrResult, error) {
+func (ss *SolrService) Facets(collection, query, fields string, start, rows int, filterQueries []string, facetFields, childrenFacetFields []string, blockJoin bool) (*solr.SolrResult, error) {
 
 	si, err := ss.getSolrInterface(collection)
 	if err != nil {
@@ -95,6 +105,7 @@ func (ss *SolrService) Facets(collection, query, fields string, start, rows int,
 
 	q := ss.buildFilteredQuery(collection, query, fields, start, rows, filterQueries)
 	ss.addFacets(q, facetFields)
+	ss.addChildrenFacets(q, childrenFacetFields)
 
 	s := si.Search(q)
 
