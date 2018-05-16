@@ -1,5 +1,5 @@
-hash: 840f1c30d6a0cead969c65b7a574221d88330b81a7e899917f198e90638bba61
-updated: 2018-05-09T19:01:27.080256966-03:00
+hash: 9a547665cc4543f8a67b618d2f8b40d68f4d1c26ca3cf5b9a9a156378f19799f
+updated: 2018-05-16T18:37:47.239858654-03:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -16,7 +16,7 @@ imports:
 - name: github.com/hailocab/go-hostpool
   version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
 - name: github.com/hashicorp/consul
-  version: fb848fc48818f58690db09d14640513aa6bf3c02
+  version: 5174058f0d2bda63fa5198ab96c33d9a909c58ed
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -42,7 +42,7 @@ imports:
 - name: github.com/robfig/cron
   version: b41be1df696709bb6395fe435af20370037c0b4c
 - name: github.com/uol/go-solr
-  version: 0bd8099c632d2f99bea4506af442f88490ce717b
+  version: 650c5cf69c1c9a7f0221a697a2f474784d92ee48
   subpackages:
   - solr
 - name: go.uber.org/atomic
