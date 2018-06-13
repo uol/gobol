@@ -78,7 +78,7 @@ func (es *Elastic) Query(index, esType string, query, response interface{}) (int
 		return 0, err
 	}
 
-	status, req, err := es.Request(index, POST, path.Join(esType, "_search"), body)
+	status, req, err := es.Request(index, POST, path.Join(esType, "_search")+"?preference=_primary_first", body)
 	if err != nil {
 		return status, err
 	}

@@ -44,22 +44,25 @@ func (w *LogResponseWriter) Header() http.Header {
 	return w.ResponseWriter.Header()
 }
 
-func NewLogMiddleware(service, system string, logger *zap.Logger, sts *snitch.Stats, next http.Handler) *LogHandler {
+func NewLogMiddleware(service, system string, logger *zap.Logger, sts *snitch.Stats, next http.Handler, allowCORS bool) *LogHandler {
+	logger = logger.WithOptions(zap.AddStacktrace(zap.PanicLevel))
 	return &LogHandler{
-		service: service,
-		system:  system,
-		next:    next,
-		logger:  logger,
-		stats:   sts,
+		service:   service,
+		system:    system,
+		next:      next,
+		logger:    logger,
+		stats:     sts,
+		allowCORS: allowCORS,
 	}
 }
 
 type LogHandler struct {
-	service string
-	system  string
-	next    http.Handler
-	logger  *zap.Logger
-	stats   *snitch.Stats
+	service   string
+	system    string
+	next      http.Handler
+	logger    *zap.Logger
+	stats     *snitch.Stats
+	allowCORS bool
 }
 
 func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +76,10 @@ func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if header.Get(fmt.Sprintf("X-REQUEST-%s-ID", h.system)) == "" {
 		header.Add(fmt.Sprintf("X-REQUEST-%s-ID", h.system), rid)
+	}
+
+	if h.allowCORS {
+		header.Add("Access-Control-Allow-Origin", "*")
 	}
 
 	logw := &LogResponseWriter{
@@ -108,7 +115,7 @@ func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reqLogger = reqLogger.With(zap.String("forward", f))
 	}
 
-	if status >= http.StatusBadRequest {
+	if status >= http.StatusInternalServerError {
 		reqLogger.Error("completed handling request with errors")
 	} else {
 		reqLogger.Info("completed handling request")

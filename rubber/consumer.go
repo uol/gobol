@@ -55,8 +55,7 @@ func (c *consumer) loop() error {
 			status, content, err := c.Request(c.server, request.method,
 				path.Join("/", request.index, request.path), request.body)
 			if err != nil && request.retries < c.maxRetries {
-				c.logger.Debug(
-					"Retry request",
+				c.logger.Warn("Retry request",
 					zap.String("function", "loop"),
 					zap.String("structure", "consumer"),
 					zap.String("package", "rubber"),
