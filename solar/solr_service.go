@@ -143,9 +143,6 @@ func (ss *SolrService) DeleteDocumentByQuery(collection string, commit bool, que
 	params := &url.Values{}
 	if commit {
 		params.Add("commit", "true")
-	} else {
-		ss.logger.Info("'commit' param is set to false, no document will be deleted")
-		return nil
 	}
 
 	doc := map[string]interface{}{}
