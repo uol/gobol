@@ -48,7 +48,7 @@ func NewLogMiddleware(service, system string, logger *zap.Logger, sts *snitch.St
 	logger = logger.WithOptions(zap.AddStacktrace(zap.PanicLevel))
 	var fullHandler http.Handler
 	if allowCORS {
-		fullHandler = cors.Default().Handler(next)
+		fullHandler = cors.AllowAll().Handler(next)
 	} else {
 		fullHandler = next
 	}
