@@ -1,15 +1,10 @@
 #!/bin/bash
 
-function quit {
-    docker rm -f et1 et2 et3
-    exit
-}
-
 # zookeeper
 zkPodName='zookeeper'
 docker rm -f "${zkPodName}"
 docker run -d --name "${zkPodName}" zookeeper:3.4.11
-sleep 3
+sleep 5
 zkIP=$(docker inspect --format "{{ .NetworkSettings.IPAddress }}" $zkPodName)
 echo "$zkPodName listening on ip $zkIP"
 echo "Zookeeper OK"
@@ -18,8 +13,25 @@ echo "Zookeeper OK"
 # build the node image
 ./build.sh 
 
+function quit {
+    docker rm -f et1 et2 et3 zookeeper
+    exit
+}
+
+function createSlave {
+    docker run -it -d --name ${1} --add-host="zookeeper.intranet:${zkIP}" electiontest
+    sleep 5
+    grepResult=$(docker logs ${1} | grep 'slave node created')
+    if [ -z "$grepResult" ]; then
+        echo "FAIL: expecting ${1} be a slave"
+        quit
+    else 
+        echo "OK: ${1} is slave"
+    fi
+}
+
 docker run -it -d --name et1 --add-host="zookeeper.intranet:${zkIP}" electiontest
-sleep 3
+sleep 5
 grepResult=$(docker logs et1 | grep master)
 if [ -z "$grepResult" ]; then
     echo "FAIL: expecting et1 be the master"
@@ -28,25 +40,8 @@ else
     echo "OK: et1 is the master"
 fi
 
-docker run -it -d --name et2 --add-host="zookeeper.intranet:${zkIP}" electiontest
-sleep 3
-grepResult=$(docker logs et2 | grep 'slave node created')
-if [ -z "$grepResult" ]; then
-    echo "FAIL: expecting et2 be a slave"
-    quit
-else 
-    echo "OK: et2 is slave"
-fi
-
-docker run -it -d --name et3 --add-host="zookeeper.intranet:${zkIP}" electiontest
-sleep 3
-grepResult=$(docker logs et3 | grep 'slave node created')
-if [ -z "$grepResult" ]; then
-    echo "FAIL: expecting et3 be a slave"
-    quit
-else 
-    echo "OK: et3 is slave"
-fi
+createSlave 'et2'
+createSlave 'et3'
 
 echo "killing master node..."
 docker rm -f et1
@@ -70,15 +65,7 @@ else
     echo "OK: et2 or et3 is the master: ${grepResultET2}${grepResultET3}"
 fi
 
-docker run -it -d --name et1 --add-host="zookeeper.intranet:${zkIP}" electiontest
-sleep 3
-grepResult=$(docker logs et1 | grep 'slave node created')
-if [ -z "$grepResult" ]; then
-    echo "FAIL: expecting et1 be a slave"
-    quit
-else 
-    echo "OK: et1 is slave"
-fi
+createSlave 'et1'
 
 echo "OK: test is done!"
 

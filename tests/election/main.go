@@ -6,11 +6,26 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"test/cluster/election"
 	"time"
+
+	"github.com/uol/gobol/election"
+	"github.com/uol/gobol/saw"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
+
+	logger, err := saw.New("INFO", "QA")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(0)
+	}
+
+	lf := []zapcore.Field{
+		zap.String("package", "main"),
+		zap.String("func", "main"),
+	}
 
 	cfg := election.Config{
 		ZKURL:             "zookeeper.intranet",
@@ -18,12 +33,21 @@ func main() {
 		ZKSlaveNodesURI:   "/slaves",
 	}
 
-	election, err := election.New(&cfg)
+	election, err := election.New(&cfg, logger)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Error(err.Error(), lf...)
+		os.Exit(0)
 	}
 
 	election.Start()
+
+	ci, err := election.GetClusterInfo()
+	if err != nil {
+		logger.Error(err.Error(), lf...)
+		os.Exit(0)
+	}
+
+	logger.Info(fmt.Sprintf("%+v", ci), lf...)
 
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
@@ -31,7 +55,7 @@ func main() {
 
 	go func() {
 		<-gracefulStop
-		fmt.Println("exiting...")
+		logger.Error("exiting...", lf...)
 		election.Close()
 		time.Sleep(2 * time.Second)
 		os.Exit(0)
