@@ -87,20 +87,24 @@ func (e *Election) Start() error {
 		return err
 	}
 
-	for {
-		select {
-		case event := <-eventChannel:
-			if event.Type == zk.EventNodeDeleted {
-				e.logInfo("Start", "master has quit, trying to be the new master...")
-				err := e.electForMaster()
-				if err != nil {
-					e.logError("Start", "error trying to elect this node for master: "+err.Error())
+	go func() {
+		for {
+			select {
+			case event := <-eventChannel:
+				if event.Type == zk.EventNodeDeleted {
+					e.logInfo("Start", "master has quit, trying to be the new master...")
+					err := e.electForMaster()
+					if err != nil {
+						e.logError("Start", "error trying to elect this node for master: "+err.Error())
+					}
+				} else if event.Type == zk.EventNodeCreated {
+					e.logInfo("Start", "a new master has been elected...")
 				}
-			} else if event.Type == zk.EventNodeCreated {
-				e.logInfo("Start", "a new master has been elected...")
 			}
 		}
-	}
+	}()
+
+	return nil
 }
 
 // Close - closes the connection
@@ -223,4 +227,35 @@ func (e *Election) electForMaster() error {
 // IsMaster - check if the cluster is the master
 func (e *Election) IsMaster() bool {
 	return e.isMaster
+}
+
+// GetClusterInfo - return cluster info
+func (e *Election) GetClusterInfo() (*Cluster, error) {
+
+	masterNode, err := e.getZKMasterNode()
+	if err != nil {
+		return nil, err
+	}
+
+	slaveDir, err := e.getNodeData(e.config.ZKSlaveNodesURI)
+	if err != nil {
+		return nil, err
+	}
+
+	var children []string
+	if slaveDir != nil {
+		children, _, err = e.zkConnection.Children(e.config.ZKSlaveNodesURI)
+		if err != nil {
+			e.logError("GetClusterInfo", "error getting slave nodes: "+err.Error())
+			return nil, err
+		}
+	} else {
+		children = []string{}
+	}
+
+	return &Cluster{
+		IsMaster: e.isMaster,
+		Master:   *masterNode,
+		Slaves:   children,
+	}, nil
 }

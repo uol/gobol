@@ -6,3 +6,10 @@ type Config struct {
 	ZKElectionNodeURI string
 	ZKSlaveNodesURI   string
 }
+
+// Cluster - has cluster info
+type Cluster struct {
+	IsMaster bool
+	Master   string
+	Slaves   []string
+}
