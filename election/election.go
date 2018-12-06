@@ -11,15 +11,16 @@ import (
 
 // Election - handles the zookeeper election
 type Election struct {
-	zkConnection *zk.Conn
-	config       *Config
-	isMaster     bool
-	defaultACL   []zk.ACL
-	logger       *zap.Logger
+	zkConnection    *zk.Conn
+	config          *Config
+	isMaster        bool
+	defaultACL      []zk.ACL
+	logger          *zap.Logger
+	electionChannel chan int
 }
 
 // New - creates a new instance
-func New(config *Config, logger *zap.Logger) (*Election, error) {
+func New(config *Config, logger *zap.Logger, electionChannel chan int) (*Election, error) {
 
 	// Create the ZK connection
 	zkConnection, _, err := zk.Connect([]string{config.ZKURL}, time.Second)
@@ -28,10 +29,11 @@ func New(config *Config, logger *zap.Logger) (*Election, error) {
 	}
 
 	e := &Election{
-		zkConnection: zkConnection,
-		config:       config,
-		defaultACL:   zk.WorldACL(zk.PermAll),
-		logger:       logger,
+		zkConnection:    zkConnection,
+		config:          config,
+		defaultACL:      zk.WorldACL(zk.PermAll),
+		logger:          logger,
+		electionChannel: electionChannel,
 	}
 
 	return e, nil
@@ -164,6 +166,7 @@ func (e *Election) registerAsSlave(nodeName string) error {
 	}
 
 	e.isMaster = false
+	e.electionChannel <- Slave
 
 	return nil
 }
@@ -204,6 +207,7 @@ func (e *Election) electForMaster() error {
 
 	e.logInfo("electForMaster", "master node created: "+path)
 	e.isMaster = true
+	e.electionChannel <- Master
 
 	slaveNode := e.config.ZKSlaveNodesURI + "/" + name
 	slave, err := e.getNodeData(slaveNode)

@@ -33,15 +33,30 @@ func main() {
 		ZKSlaveNodesURI:   "/slaves",
 	}
 
-	election, err := election.New(&cfg, logger)
+	electionChannel := make(chan int)
+
+	electionObj, err := election.New(&cfg, logger, electionChannel)
 	if err != nil {
 		logger.Error(err.Error(), lf...)
 		os.Exit(0)
 	}
 
-	election.Start()
+	go func() {
+		for {
+			select {
+			case signal := <-electionChannel:
+				if signal == election.Master {
+					logger.Info("master signal received", lf...)
+				} else if signal == election.Slave {
+					logger.Info("slave signal received", lf...)
+				}
+			}
+		}
+	}()
 
-	ci, err := election.GetClusterInfo()
+	electionObj.Start()
+
+	ci, err := electionObj.GetClusterInfo()
 	if err != nil {
 		logger.Error(err.Error(), lf...)
 		os.Exit(0)
@@ -56,7 +71,7 @@ func main() {
 	go func() {
 		<-gracefulStop
 		logger.Error("exiting...", lf...)
-		election.Close()
+		electionObj.Close()
 		time.Sleep(2 * time.Second)
 		os.Exit(0)
 	}()
