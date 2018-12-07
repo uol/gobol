@@ -3,7 +3,7 @@
 # zookeeper
 zkPodName='zookeeper'
 docker rm -f "${zkPodName}"
-docker run -d --name "${zkPodName}" zookeeper:3.4.11
+docker run -d --name "${zkPodName}" -v $(pwd)/zoo.cfg:/conf/zoo.cfg zookeeper:3.4.11
 sleep 5
 zkIP=$(docker inspect --format "{{ .NetworkSettings.IPAddress }}" $zkPodName)
 echo "$zkPodName listening on ip $zkIP"

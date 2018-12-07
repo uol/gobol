@@ -28,9 +28,11 @@ func main() {
 	}
 
 	cfg := election.Config{
-		ZKURL:             "zookeeper.intranet",
-		ZKElectionNodeURI: "/master",
-		ZKSlaveNodesURI:   "/slaves",
+		ZKURL:               []string{"zookeeper.intranet"},
+		ZKElectionNodeURI:   "/master",
+		ZKSlaveNodesURI:     "/slaves",
+		ReconnectionTimeout: 3,
+		SessionTimeout:      5,
 	}
 
 	electionChannel := make(chan int)

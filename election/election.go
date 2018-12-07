@@ -11,32 +11,29 @@ import (
 
 // Election - handles the zookeeper election
 type Election struct {
-	zkConnection    *zk.Conn
-	config          *Config
-	isMaster        bool
-	defaultACL      []zk.ACL
-	logger          *zap.Logger
-	electionChannel chan int
+	zkConnection      *zk.Conn
+	config            *Config
+	isMaster          bool
+	defaultACL        []zk.ACL
+	logger            *zap.Logger
+	electionChannel   chan int
+	connectionChannel <-chan zk.Event
+	messageChannel    chan int
+	sessionID         int64
 }
 
 // New - creates a new instance
 func New(config *Config, logger *zap.Logger, electionChannel chan int) (*Election, error) {
 
-	// Create the ZK connection
-	zkConnection, _, err := zk.Connect([]string{config.ZKURL}, time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	e := &Election{
-		zkConnection:    zkConnection,
-		config:          config,
-		defaultACL:      zk.WorldACL(zk.PermAll),
-		logger:          logger,
-		electionChannel: electionChannel,
-	}
-
-	return e, nil
+	return &Election{
+		zkConnection:      nil,
+		config:            config,
+		defaultACL:        zk.WorldACL(zk.PermAll),
+		logger:            logger,
+		electionChannel:   electionChannel,
+		messageChannel:    make(chan int),
+		connectionChannel: nil,
+	}, nil
 }
 
 // getNodeData - check if node exists
@@ -74,10 +71,69 @@ func (e *Election) getZKMasterNode() (*string, error) {
 	return data, nil
 }
 
+// connect - connects to the zookeeper
+func (e *Election) connect() error {
+
+	e.logInfo("connect", "connecting to zookeeper...")
+
+	var err error
+
+	// Create the ZK connection
+	e.zkConnection, e.connectionChannel, err = zk.Connect(e.config.ZKURL, time.Duration(e.config.SessionTimeout)*time.Second)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case event := <-e.connectionChannel:
+				if event.Type == zk.EventSession {
+					if event.State == zk.StateConnected ||
+						event.State == zk.StateConnectedReadOnly {
+						e.logInfo("connect", "connection established with zookeeper")
+					} else if event.State == zk.StateSaslAuthenticated ||
+						event.State == zk.StateHasSession {
+						e.logInfo("connect", "session created in zookeeper")
+					} else if event.State == zk.StateAuthFailed ||
+						event.State == zk.StateDisconnected ||
+						event.State == zk.StateExpired {
+						e.logInfo("connect", "zookeeper connection was lost")
+						e.zkConnection.Close()
+						e.messageChannel <- Disconnected
+						for true {
+							time.Sleep(time.Duration(e.config.ReconnectionTimeout) * time.Second)
+							e.zkConnection, e.connectionChannel, err = zk.Connect(e.config.ZKURL, time.Duration(e.config.SessionTimeout)*time.Second)
+							if err != nil {
+								e.logError("connect", "error reconnecting to zookeeper: "+err.Error())
+							} else {
+								err := e.Start()
+								if err != nil {
+									e.logError("connect", "error starting election loop: "+err.Error())
+								} else {
+									break
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
 // Start - starts to listen zk events
 func (e *Election) Start() error {
 
-	err := e.electForMaster()
+	err := e.connect()
+	if err != nil {
+		e.logError("Start", "error connecting to zookeeper: "+err.Error())
+		return err
+	}
+
+	err = e.electForMaster()
 	if err != nil {
 		e.logError("Start", "error electing this node for master: "+err.Error())
 		return err
@@ -101,6 +157,11 @@ func (e *Election) Start() error {
 					}
 				} else if event.Type == zk.EventNodeCreated {
 					e.logInfo("Start", "a new master has been elected...")
+				}
+			case event := <-e.messageChannel:
+				if event == Disconnected {
+					e.logInfo("Start", "breaking election loop...")
+					return
 				}
 			}
 		}
