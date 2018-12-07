@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Election - handles the zookeeper election
-type Election struct {
+// ElectionManager - handles the zookeeper election
+type ElectionManager struct {
 	zkConnection      *zk.Conn
 	config            *Config
 	isMaster          bool
@@ -23,9 +23,9 @@ type Election struct {
 }
 
 // New - creates a new instance
-func New(config *Config, logger *zap.Logger, electionChannel chan int) (*Election, error) {
+func New(config *Config, logger *zap.Logger, electionChannel chan int) (*ElectionManager, error) {
 
-	return &Election{
+	return &ElectionManager{
 		zkConnection:      nil,
 		config:            config,
 		defaultACL:        zk.WorldACL(zk.PermAll),
@@ -37,7 +37,7 @@ func New(config *Config, logger *zap.Logger, electionChannel chan int) (*Electio
 }
 
 // getNodeData - check if node exists
-func (e *Election) getNodeData(node string) (*string, error) {
+func (e *ElectionManager) getNodeData(node string) (*string, error) {
 
 	data, _, err := e.zkConnection.Get(node)
 
@@ -60,7 +60,7 @@ func (e *Election) getNodeData(node string) (*string, error) {
 }
 
 // getZKMasterNode - returns zk master node name
-func (e *Election) getZKMasterNode() (*string, error) {
+func (e *ElectionManager) getZKMasterNode() (*string, error) {
 
 	data, err := e.getNodeData(e.config.ZKElectionNodeURI)
 	if err != nil {
@@ -72,7 +72,7 @@ func (e *Election) getZKMasterNode() (*string, error) {
 }
 
 // connect - connects to the zookeeper
-func (e *Election) connect() error {
+func (e *ElectionManager) connect() error {
 
 	e.logInfo("connect", "connecting to zookeeper...")
 
@@ -125,7 +125,7 @@ func (e *Election) connect() error {
 }
 
 // Start - starts to listen zk events
-func (e *Election) Start() error {
+func (e *ElectionManager) Start() error {
 
 	err := e.connect()
 	if err != nil {
@@ -171,7 +171,7 @@ func (e *Election) Start() error {
 }
 
 // Close - closes the connection
-func (e *Election) Close() {
+func (e *ElectionManager) Close() {
 
 	e.zkConnection.Close()
 
@@ -179,7 +179,7 @@ func (e *Election) Close() {
 }
 
 // getHostname - retrieves this node hostname from the OS
-func (e *Election) getHostname() (string, error) {
+func (e *ElectionManager) getHostname() (string, error) {
 
 	name, err := os.Hostname()
 	if err != nil {
@@ -191,7 +191,7 @@ func (e *Election) getHostname() (string, error) {
 }
 
 // registerAsSlave - register this node as a slave
-func (e *Election) registerAsSlave(nodeName string) error {
+func (e *ElectionManager) registerAsSlave(nodeName string) error {
 
 	data, err := e.getNodeData(e.config.ZKSlaveNodesURI)
 	if err != nil {
@@ -233,7 +233,7 @@ func (e *Election) registerAsSlave(nodeName string) error {
 }
 
 // electForMaster - try to elect this node as the master
-func (e *Election) electForMaster() error {
+func (e *ElectionManager) electForMaster() error {
 
 	name, err := e.getHostname()
 	if err != nil {
@@ -290,12 +290,12 @@ func (e *Election) electForMaster() error {
 }
 
 // IsMaster - check if the cluster is the master
-func (e *Election) IsMaster() bool {
+func (e *ElectionManager) IsMaster() bool {
 	return e.isMaster
 }
 
 // GetClusterInfo - return cluster info
-func (e *Election) GetClusterInfo() (*Cluster, error) {
+func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
 
 	masterNode, err := e.getZKMasterNode()
 	if err != nil {
