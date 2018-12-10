@@ -23,4 +23,6 @@ type Cluster struct {
 	IsMaster bool
 	Master   string
 	Slaves   []string
+	Nodes    []string
+	NumNodes int
 }

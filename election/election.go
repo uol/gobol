@@ -333,7 +333,7 @@ func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
 		IsMaster: e.isMaster,
 		Master:   *masterNode,
 		Slaves:   children,
-		nodes:    nodes,
-		numNodes: len(nodes),
+		Nodes:    nodes,
+		NumNodes: len(nodes),
 	}, nil
 }
