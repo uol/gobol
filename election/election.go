@@ -99,7 +99,7 @@ func (e *ElectionManager) connect() error {
 						event.State == zk.StateDisconnected ||
 						event.State == zk.StateExpired {
 						e.logInfo("connect", "zookeeper connection was lost")
-						e.zkConnection.Close()
+						e.Close()
 						e.messageChannel <- Disconnected
 						for true {
 							time.Sleep(time.Duration(e.config.ReconnectionTimeout) * time.Second)
@@ -161,6 +161,8 @@ func (e *ElectionManager) Start() error {
 			case event := <-e.messageChannel:
 				if event == Disconnected {
 					e.logInfo("Start", "breaking election loop...")
+					e.isMaster = false
+					e.electionChannel <- Disconnected
 					return
 				}
 			}
@@ -173,7 +175,11 @@ func (e *ElectionManager) Start() error {
 // Close - closes the connection
 func (e *ElectionManager) Close() {
 
-	e.zkConnection.Close()
+	if e.zkConnection != nil && !e.zkConnection.Disconnected() {
+		e.zkConnection.Close()
+	}
+
+	time.Sleep(2 * time.Second)
 
 	e.logInfo("Close", "ZK connection closed")
 }
@@ -297,10 +303,13 @@ func (e *ElectionManager) IsMaster() bool {
 // GetClusterInfo - return cluster info
 func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
 
+	nodes := []string{}
 	masterNode, err := e.getZKMasterNode()
 	if err != nil {
 		return nil, err
 	}
+
+	nodes = append(nodes, masterNode)
 
 	slaveDir, err := e.getNodeData(e.config.ZKSlaveNodesURI)
 	if err != nil {
@@ -314,6 +323,8 @@ func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
 			e.logError("GetClusterInfo", "error getting slave nodes: "+err.Error())
 			return nil, err
 		}
+
+		nodes = append(nodes, children...)
 	} else {
 		children = []string{}
 	}
@@ -322,5 +333,7 @@ func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
 		IsMaster: e.isMaster,
 		Master:   *masterNode,
 		Slaves:   children,
+		nodes:    nodes,
+		numNodes: len(nodes),
 	}, nil
 }
