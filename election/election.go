@@ -175,13 +175,13 @@ func (e *ElectionManager) Start() error {
 // Close - closes the connection
 func (e *ElectionManager) Close() {
 
-	if e.zkConnection != nil && !e.zkConnection.Disconnected() {
+	if e.zkConnection != nil && e.zkConnection.State() != zk.StateDisconnected {
 		e.zkConnection.Close()
+		time.Sleep(2 * time.Second)
+		e.logInfo("Close", "ZK connection closed")
+	} else {
+		e.logInfo("Close", "ZK connection is already closed")
 	}
-
-	time.Sleep(2 * time.Second)
-
-	e.logInfo("Close", "ZK connection closed")
 }
 
 // getHostname - retrieves this node hostname from the OS
@@ -309,7 +309,7 @@ func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
 		return nil, err
 	}
 
-	nodes = append(nodes, masterNode)
+	nodes = append(nodes, *masterNode)
 
 	slaveDir, err := e.getNodeData(e.config.ZKSlaveNodesURI)
 	if err != nil {
