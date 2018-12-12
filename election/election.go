@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// ElectionManager - handles the zookeeper election
-type ElectionManager struct {
+// Manager - handles the zookeeper election
+type Manager struct {
 	zkConnection      *zk.Conn
 	config            *Config
 	isMaster          bool
@@ -19,25 +19,27 @@ type ElectionManager struct {
 	electionChannel   chan int
 	connectionChannel <-chan zk.Event
 	messageChannel    chan int
+	terminateChannel  chan bool
 	sessionID         int64
 }
 
 // New - creates a new instance
-func New(config *Config, logger *zap.Logger, electionChannel chan int) (*ElectionManager, error) {
+func New(config *Config, logger *zap.Logger, electionChannel chan int) (*Manager, error) {
 
-	return &ElectionManager{
+	return &Manager{
 		zkConnection:      nil,
 		config:            config,
 		defaultACL:        zk.WorldACL(zk.PermAll),
 		logger:            logger,
 		electionChannel:   electionChannel,
 		messageChannel:    make(chan int),
+		terminateChannel:  make(chan bool),
 		connectionChannel: nil,
 	}, nil
 }
 
 // getNodeData - check if node exists
-func (e *ElectionManager) getNodeData(node string) (*string, error) {
+func (e *Manager) getNodeData(node string) (*string, error) {
 
 	data, _, err := e.zkConnection.Get(node)
 
@@ -60,7 +62,7 @@ func (e *ElectionManager) getNodeData(node string) (*string, error) {
 }
 
 // getZKMasterNode - returns zk master node name
-func (e *ElectionManager) getZKMasterNode() (*string, error) {
+func (e *Manager) getZKMasterNode() (*string, error) {
 
 	data, err := e.getNodeData(e.config.ZKElectionNodeURI)
 	if err != nil {
@@ -72,7 +74,7 @@ func (e *ElectionManager) getZKMasterNode() (*string, error) {
 }
 
 // connect - connects to the zookeeper
-func (e *ElectionManager) connect() error {
+func (e *Manager) connect() error {
 
 	e.logInfo("connect", "connecting to zookeeper...")
 
@@ -99,9 +101,9 @@ func (e *ElectionManager) connect() error {
 						event.State == zk.StateDisconnected ||
 						event.State == zk.StateExpired {
 						e.logInfo("connect", "zookeeper connection was lost")
-						e.Close()
+						e.disconnect()
 						e.messageChannel <- Disconnected
-						for true {
+						for {
 							time.Sleep(time.Duration(e.config.ReconnectionTimeout) * time.Second)
 							e.zkConnection, e.connectionChannel, err = zk.Connect(e.config.ZKURL, time.Duration(e.config.SessionTimeout)*time.Second)
 							if err != nil {
@@ -117,6 +119,9 @@ func (e *ElectionManager) connect() error {
 						}
 					}
 				}
+			case <-e.terminateChannel:
+				e.logInfo("connect", "terminating connection channel")
+				return
 			}
 		}
 	}()
@@ -125,7 +130,7 @@ func (e *ElectionManager) connect() error {
 }
 
 // Start - starts to listen zk events
-func (e *ElectionManager) Start() error {
+func (e *Manager) Start() error {
 
 	err := e.connect()
 	if err != nil {
@@ -172,8 +177,8 @@ func (e *ElectionManager) Start() error {
 	return nil
 }
 
-// Close - closes the connection
-func (e *ElectionManager) Close() {
+// disconnect - disconnects from the zookeeper
+func (e *Manager) disconnect() {
 
 	if e.zkConnection != nil && e.zkConnection.State() != zk.StateDisconnected {
 		e.zkConnection.Close()
@@ -184,8 +189,15 @@ func (e *ElectionManager) Close() {
 	}
 }
 
+// Terminate - end all channels and disconnects from the zookeeper
+func (e *Manager) Terminate() {
+
+	e.terminateChannel <- true
+	e.disconnect()
+}
+
 // getHostname - retrieves this node hostname from the OS
-func (e *ElectionManager) getHostname() (string, error) {
+func (e *Manager) getHostname() (string, error) {
 
 	name, err := os.Hostname()
 	if err != nil {
@@ -197,7 +209,7 @@ func (e *ElectionManager) getHostname() (string, error) {
 }
 
 // registerAsSlave - register this node as a slave
-func (e *ElectionManager) registerAsSlave(nodeName string) error {
+func (e *Manager) registerAsSlave(nodeName string) error {
 
 	data, err := e.getNodeData(e.config.ZKSlaveNodesURI)
 	if err != nil {
@@ -239,7 +251,7 @@ func (e *ElectionManager) registerAsSlave(nodeName string) error {
 }
 
 // electForMaster - try to elect this node as the master
-func (e *ElectionManager) electForMaster() error {
+func (e *Manager) electForMaster() error {
 
 	name, err := e.getHostname()
 	if err != nil {
@@ -296,12 +308,12 @@ func (e *ElectionManager) electForMaster() error {
 }
 
 // IsMaster - check if the cluster is the master
-func (e *ElectionManager) IsMaster() bool {
+func (e *Manager) IsMaster() bool {
 	return e.isMaster
 }
 
 // GetClusterInfo - return cluster info
-func (e *ElectionManager) GetClusterInfo() (*Cluster, error) {
+func (e *Manager) GetClusterInfo() (*Cluster, error) {
 
 	nodes := []string{}
 	masterNode, err := e.getZKMasterNode()

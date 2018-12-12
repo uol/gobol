@@ -37,7 +37,7 @@ func main() {
 
 	electionChannel := make(chan int)
 
-	electionManager, err := election.New(&cfg, logger, electionChannel)
+	manager, err := election.New(&cfg, logger, electionChannel)
 	if err != nil {
 		logger.Error(err.Error(), lf...)
 		os.Exit(0)
@@ -56,9 +56,9 @@ func main() {
 		}
 	}()
 
-	electionManager.Start()
+	manager.Start()
 
-	ci, err := electionManager.GetClusterInfo()
+	ci, err := manager.GetClusterInfo()
 	if err != nil {
 		logger.Error(err.Error(), lf...)
 		os.Exit(0)
@@ -73,7 +73,7 @@ func main() {
 	go func() {
 		<-gracefulStop
 		logger.Error("exiting...", lf...)
-		electionManager.Close()
+		manager.Terminate()
 		time.Sleep(2 * time.Second)
 		os.Exit(0)
 	}()

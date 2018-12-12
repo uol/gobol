@@ -6,7 +6,7 @@ import (
 )
 
 // buildLogFields - build the log fields
-func (e *ElectionManager) buildLogFields(function string) []zapcore.Field {
+func (e *Manager) buildLogFields(function string) []zapcore.Field {
 
 	return []zapcore.Field{
 		zap.String("package", "election"),
@@ -15,13 +15,13 @@ func (e *ElectionManager) buildLogFields(function string) []zapcore.Field {
 }
 
 // logError - logs the error message
-func (e *ElectionManager) logError(function, message string) {
+func (e *Manager) logError(function, message string) {
 
 	e.logger.Error(message, e.buildLogFields(function)...)
 }
 
 // logInfo - logs the info message
-func (e *ElectionManager) logInfo(function, message string) {
+func (e *Manager) logInfo(function, message string) {
 
 	e.logger.Info(message, e.buildLogFields(function)...)
 }
