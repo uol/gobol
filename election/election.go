@@ -16,7 +16,7 @@ type Manager struct {
 	isMaster          bool
 	defaultACL        []zk.ACL
 	logger            *zap.Logger
-	electionChannel   chan int
+	electionChannel   *chan int
 	connectionChannel <-chan zk.Event
 	messageChannel    chan int
 	terminateChannel  chan bool
@@ -24,7 +24,7 @@ type Manager struct {
 }
 
 // New - creates a new instance
-func New(config *Config, logger *zap.Logger, electionChannel chan int) (*Manager, error) {
+func New(config *Config, logger *zap.Logger, electionChannel *chan int) (*Manager, error) {
 
 	return &Manager{
 		zkConnection:      nil,
@@ -167,7 +167,7 @@ func (e *Manager) Start() error {
 				if event == Disconnected {
 					e.logInfo("Start", "breaking election loop...")
 					e.isMaster = false
-					e.electionChannel <- Disconnected
+					*e.electionChannel <- Disconnected
 					return
 				}
 			}
@@ -245,7 +245,7 @@ func (e *Manager) registerAsSlave(nodeName string) error {
 	}
 
 	e.isMaster = false
-	e.electionChannel <- Slave
+	*e.electionChannel <- Slave
 
 	return nil
 }
@@ -286,7 +286,7 @@ func (e *Manager) electForMaster() error {
 
 	e.logInfo("electForMaster", "master node created: "+path)
 	e.isMaster = true
-	e.electionChannel <- Master
+	*e.electionChannel <- Master
 
 	slaveNode := e.config.ZKSlaveNodesURI + "/" + name
 	slave, err := e.getNodeData(slaveNode)
