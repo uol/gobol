@@ -64,6 +64,10 @@ func (e *Manager) getNodeData(node string) (*string, error) {
 // getZKMasterNode - returns zk master node name
 func (e *Manager) getZKMasterNode() (*string, error) {
 
+	if e.zkConnection == nil {
+		return nil, nil
+	}
+
 	data, err := e.getNodeData(e.config.ZKElectionNodeURI)
 	if err != nil {
 		e.logError("getZKMasterNode", "error retrieving ZK election node data")
@@ -314,6 +318,10 @@ func (e *Manager) IsMaster() bool {
 
 // GetClusterInfo - return cluster info
 func (e *Manager) GetClusterInfo() (*Cluster, error) {
+
+	if e.zkConnection == nil {
+		return nil, nil
+	}
 
 	nodes := []string{}
 	masterNode, err := e.getZKMasterNode()
