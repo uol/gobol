@@ -23,6 +23,17 @@ function createSlave {
 
 killAll
 
+# build the node image
+export CGO_ENABLED=0
+if go build; then
+    echo "build OK!"
+else
+    echo "build FAILED!"
+    exit
+fi
+
+docker build -t electiontest . 
+
 # zookeeper
 zkPodName='zookeeper'
 docker rm -f "${zkPodName}"
@@ -32,9 +43,6 @@ zkIP=$(docker inspect --format "{{ .NetworkSettings.IPAddress }}" $zkPodName)
 echo "$zkPodName listening on ip $zkIP"
 echo "Zookeeper OK"
 # /zookeeper
-
-# build the node image
-./build.sh 
 
 docker run -it -d -h et1 --name et1 --add-host="zookeeper.intranet:${zkIP}" electiontest
 sleep 5

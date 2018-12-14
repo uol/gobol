@@ -35,18 +35,18 @@ func main() {
 		SessionTimeout:      5,
 	}
 
-	electionChannel := make(chan int)
-
-	manager, err := election.New(&cfg, logger, &electionChannel)
+	manager, err := election.New(&cfg, logger)
 	if err != nil {
 		logger.Error(err.Error(), lf...)
 		os.Exit(0)
 	}
 
+	electionChannel, err := manager.Start()
+
 	go func() {
 		for {
 			select {
-			case signal := <-electionChannel:
+			case signal := <-*electionChannel:
 				if signal == election.Master {
 					logger.Info("master signal received", lf...)
 				} else if signal == election.Slave {
@@ -55,8 +55,6 @@ func main() {
 			}
 		}
 	}()
-
-	manager.Start()
 
 	ci, err := manager.GetClusterInfo()
 	if err != nil {
