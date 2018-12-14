@@ -37,7 +37,7 @@ func main() {
 
 	electionChannel := make(chan int)
 
-	manager, err := election.New(&cfg, logger, electionChannel)
+	manager, err := election.New(&cfg, logger, &electionChannel)
 	if err != nil {
 		logger.Error(err.Error(), lf...)
 		os.Exit(0)

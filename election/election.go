@@ -9,6 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultChannelSize int = 5
+const terminalChannelSize int = 2
+
 // Manager - handles the zookeeper election
 type Manager struct {
 	zkConnection      *zk.Conn
@@ -16,7 +19,7 @@ type Manager struct {
 	isMaster          bool
 	defaultACL        []zk.ACL
 	logger            *zap.Logger
-	electionChannel   *chan int
+	electionChannel   chan int
 	connectionChannel <-chan zk.Event
 	messageChannel    chan int
 	terminateChannel  chan bool
@@ -24,16 +27,16 @@ type Manager struct {
 }
 
 // New - creates a new instance
-func New(config *Config, logger *zap.Logger, electionChannel *chan int) (*Manager, error) {
+func New(config *Config, logger *zap.Logger) (*Manager, error) {
 
 	return &Manager{
 		zkConnection:      nil,
 		config:            config,
 		defaultACL:        zk.WorldACL(zk.PermAll),
 		logger:            logger,
-		electionChannel:   electionChannel,
-		messageChannel:    make(chan int),
-		terminateChannel:  make(chan bool),
+		electionChannel:   make(chan int, defaultChannelSize),
+		messageChannel:    make(chan int, defaultChannelSize),
+		terminateChannel:  make(chan bool, terminalChannelSize),
 		connectionChannel: nil,
 	}, nil
 }
@@ -113,7 +116,7 @@ func (e *Manager) connect() error {
 							if err != nil {
 								e.logError("connect", "error reconnecting to zookeeper: "+err.Error())
 							} else {
-								err := e.Start()
+								_, err := e.Start()
 								if err != nil {
 									e.logError("connect", "error starting election loop: "+err.Error())
 								} else {
@@ -134,24 +137,24 @@ func (e *Manager) connect() error {
 }
 
 // Start - starts to listen zk events
-func (e *Manager) Start() error {
+func (e *Manager) Start() (*chan int, error) {
 
 	err := e.connect()
 	if err != nil {
 		e.logError("Start", "error connecting to zookeeper: "+err.Error())
-		return err
+		return nil, err
 	}
 
 	err = e.electForMaster()
 	if err != nil {
 		e.logError("Start", "error electing this node for master: "+err.Error())
-		return err
+		return nil, err
 	}
 
 	_, _, eventChannel, err := e.zkConnection.ExistsW(e.config.ZKElectionNodeURI)
 	if err != nil {
 		e.logError("Start", "error listening for zk events: "+err.Error())
-		return err
+		return nil, err
 	}
 
 	go func() {
@@ -171,14 +174,14 @@ func (e *Manager) Start() error {
 				if event == Disconnected {
 					e.logInfo("Start", "breaking election loop...")
 					e.isMaster = false
-					*e.electionChannel <- Disconnected
+					e.electionChannel <- Disconnected
 					return
 				}
 			}
 		}
 	}()
 
-	return nil
+	return &e.electionChannel, nil
 }
 
 // disconnect - disconnects from the zookeeper
@@ -249,7 +252,7 @@ func (e *Manager) registerAsSlave(nodeName string) error {
 	}
 
 	e.isMaster = false
-	*e.electionChannel <- Slave
+	e.electionChannel <- Slave
 
 	return nil
 }
@@ -290,7 +293,7 @@ func (e *Manager) electForMaster() error {
 
 	e.logInfo("electForMaster", "master node created: "+path)
 	e.isMaster = true
-	*e.electionChannel <- Master
+	e.electionChannel <- Master
 
 	slaveNode := e.config.ZKSlaveNodesURI + "/" + name
 	slave, err := e.getNodeData(slaveNode)
