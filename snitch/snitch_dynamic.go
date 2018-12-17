@@ -79,7 +79,7 @@ func (st *Stats) getPoint(
 		},
 		post: func(p *CustomPoint) {
 
-			st.logger.Info(
+			st.logger.Debug(
 				"collected",
 				zap.String("metric", p.metric),
 				zap.String("interval", p.interval),
