@@ -24,6 +24,7 @@ type Manager struct {
 	messageChannel    chan int
 	terminateChannel  chan bool
 	sessionID         int64
+	nodeName          string
 }
 
 // New - creates a new instance
@@ -203,12 +204,12 @@ func (e *Manager) Terminate() {
 	e.disconnect()
 }
 
-// getHostname - retrieves this node hostname from the OS
-func (e *Manager) getHostname() (string, error) {
+// GetHostname - retrieves this node hostname from the OS
+func (e *Manager) GetHostname() (string, error) {
 
 	name, err := os.Hostname()
 	if err != nil {
-		e.logError("getHostname", "could not retrive this node hostname: "+err.Error())
+		e.logError("GetHostname", "could not retrive this node hostname: "+err.Error())
 		return "", err
 	}
 
@@ -260,7 +261,7 @@ func (e *Manager) registerAsSlave(nodeName string) error {
 // electForMaster - try to elect this node as the master
 func (e *Manager) electForMaster() error {
 
-	name, err := e.getHostname()
+	name, err := e.GetHostname()
 	if err != nil {
 		return err
 	}
