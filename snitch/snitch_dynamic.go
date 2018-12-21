@@ -86,11 +86,7 @@ func (st *Stats) getPoint(
 				zap.Float64("value", p.GetValue()),
 				zap.Bool("null", p.IsValueNull()),
 			)
-			if p.aggregation != "" {
-				p.SetValue(0)
-				p.SetCount(0)
-				p.SetValueNull()
-			} else if !p.keepValue {
+			if p.aggregation != "" || !p.keepValue {
 				p.SetValue(0)
 				p.SetCount(0)
 				p.SetValueNull()
