@@ -1,5 +1,5 @@
-hash: 604df69223c738d0ac0f03c4a051d604c10faa5ded8293bb467202620190f709
-updated: 2018-12-03T18:32:02.574941035-02:00
+hash: 5e1cb1ea2eaf0d9ae84671288f1f26e537a7e68abdab3edc00920e2046f52e92
+updated: 2018-12-28T15:15:12.447854892-02:00
 imports:
 - name: github.com/armon/go-metrics
   version: f0300d1749da6fa982027e449ec0c7a145510c3c
@@ -14,7 +14,7 @@ imports:
 - name: github.com/golang/snappy
   version: 2e65f85255dbc3072edf28d6b5b8efc472979f5a
 - name: github.com/google/uuid
-  version: 9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8
+  version: d460ce9f8df2e77fb1ba55ca87fafed96c607494
 - name: github.com/hailocab/go-hostpool
   version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
 - name: github.com/hashicorp/consul
@@ -35,8 +35,19 @@ imports:
   version: 4a3a10ccd1b09be9af798006fc9c85827b5f2ba6
   subpackages:
   - coordinate
+- name: github.com/jinzhu/gorm
+  version: 472c70caa40267cb89fd8facb07fe6454b578626
+  subpackages:
+  - dialects/postgres
+- name: github.com/jinzhu/inflection
+  version: 04140366298a54a039076d798123ffa108fff46c
 - name: github.com/julienschmidt/httprouter
   version: 348b672cd90d8190f8240323e372ecd1e66b59dc
+- name: github.com/lib/pq
+  version: 9eb73efc1fcc404148b56765b0d3f61d9a5ef8ee
+  subpackages:
+  - hstore
+  - oid
 - name: github.com/mitchellh/go-homedir
   version: ae18d6b8b3205b561c79e8e5f69bff09736185f4
 - name: github.com/mitchellh/mapstructure
