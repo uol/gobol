@@ -28,11 +28,12 @@ func main() {
 	}
 
 	cfg := election.Config{
-		ZKURL:               []string{"zookeeper.intranet"},
-		ZKElectionNodeURI:   "/master",
-		ZKSlaveNodesURI:     "/slaves",
-		ReconnectionTimeout: 3,
-		SessionTimeout:      5,
+		ZKURL:                  []string{"zookeeper.intranet"},
+		ZKElectionNodeURI:      "/master",
+		ZKSlaveNodesURI:        "/slaves",
+		ReconnectionTimeout:    3,
+		SessionTimeout:         5,
+		ClusterChangeCheckTime: 1000,
 	}
 
 	manager, err := election.New(&cfg, logger)
@@ -41,16 +42,18 @@ func main() {
 		os.Exit(0)
 	}
 
-	electionChannel, err := manager.Start()
+	feedbackChannel, err := manager.Start()
 
 	go func() {
 		for {
 			select {
-			case signal := <-*electionChannel:
+			case signal := <-*feedbackChannel:
 				if signal == election.Master {
 					logger.Info("master signal received", lf...)
 				} else if signal == election.Slave {
 					logger.Info("slave signal received", lf...)
+				} else if signal == election.ClusterChanged {
+					logger.Info("cluster changed signal received", lf...)
 				}
 			}
 		}
