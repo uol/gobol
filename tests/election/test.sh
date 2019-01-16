@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# 
+# Tests the cluster election process.
+# author: rnojiri
+#
+
 function killAll {
     docker rm -f et1 et2 et3 zookeeper
 }

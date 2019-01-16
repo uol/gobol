@@ -14,6 +14,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+//
+// Does the election process using the election package
+// author: rnojiri
+//
+
 func main() {
 
 	logger, err := saw.New("INFO", "QA")
