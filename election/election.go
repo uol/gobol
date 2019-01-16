@@ -9,6 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
+//
+// A zookeeper cluster election manager
+// author: rnojiri
+//
+
 const defaultChannelSize int = 5
 const terminalChannelSize int = 2
 
