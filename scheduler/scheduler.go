@@ -42,6 +42,14 @@ func (m *Manager) AddTask(id string, task *Task, autoStart bool) error {
 	return nil
 }
 
+// Exists - checks if a task exists
+func (m *Manager) Exists(id string) bool {
+
+	_, exists := m.taskMap[id]
+
+	return exists
+}
+
 // RemoveTask - removes a task
 func (m *Manager) RemoveTask(id string) bool {
 
