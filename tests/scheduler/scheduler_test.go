@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -212,4 +213,34 @@ func TestDuplicatedTask(t *testing.T) {
 	time.Sleep(201 * time.Millisecond)
 
 	assert.Equal(t, 4, job1.counter, "expected four increments and no interruption")
+}
+
+// TestTaskList - test reading the task list
+func TestTaskList(t *testing.T) {
+
+	tasksNames := []string{"1", "2", "3", "4", "5"}
+
+	_, manager := createScheduler(tasksNames[0], true)
+
+	for i := 1; i < len(tasksNames); i++ {
+		job := &IncJob{}
+		if !assert.NoError(t, manager.AddTask(tasksNames[i], scheduler.NewTask(50*time.Millisecond, job), true), "error was not expected") {
+			return
+		}
+	}
+
+	assert.Equal(t, len(tasksNames), manager.GetNumTasks(), fmt.Sprintf("expected %d tasks", len(tasksNames)))
+	assert.Len(t, manager.GetTasks(), len(tasksNames), fmt.Sprintf("expected %d tasks", len(tasksNames)))
+
+	tasks := manager.GetTasks()
+	taskMap := map[string]bool{}
+	for _, name := range tasks {
+		taskMap[name] = true
+	}
+
+	for _, name := range tasksNames {
+		if !assert.True(t, taskMap[name], "expected task named: "+name) {
+			return
+		}
+	}
 }

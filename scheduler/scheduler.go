@@ -104,3 +104,16 @@ func (m *Manager) GetNumTasks() int {
 
 	return len(m.taskMap)
 }
+
+// GetTasks - returns a list of task names
+func (m *Manager) GetTasks() []string {
+
+	tasks := make([]string, len(m.taskMap))
+	i := 0
+	for k := range m.taskMap {
+		tasks[i] = k
+		i++
+	}
+
+	return tasks
+}
