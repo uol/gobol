@@ -66,7 +66,9 @@ func TestManualStartTask(t *testing.T) {
 
 	assert.Equal(t, 0, job.counter, "expected no increment")
 
-	manager.StartTask("x")
+	if !assert.NoError(t, manager.StartTask("x"), "expected no error") {
+		return
+	}
 
 	time.Sleep(101 * time.Millisecond)
 
@@ -80,11 +82,17 @@ func TestStopTask(t *testing.T) {
 
 	time.Sleep(201 * time.Millisecond)
 
-	manager.StopTask("x")
+	if !assert.NoError(t, manager.StopTask("x"), "expected no error") {
+		return
+	}
 
 	time.Sleep(201 * time.Millisecond)
 
 	assert.Equal(t, 2, job.counter, "expected two increments")
+
+	if assert.Error(t, manager.StopTask("y"), "expected an error, task not exists") {
+		return
+	}
 }
 
 // TestRemoveTask - test the task removal function
@@ -111,10 +119,14 @@ func TestSimultaneousTasks(t *testing.T) {
 	job1, manager := createScheduler("1", true)
 
 	job2 := &IncJob{}
-	manager.AddTask("2", scheduler.NewTask(50*time.Millisecond, job2), true)
+	if !assert.NoError(t, manager.AddTask("2", scheduler.NewTask(50*time.Millisecond, job2), true), "error was not expected") {
+		return
+	}
 
 	job3 := &IncJob{}
-	manager.AddTask("3", scheduler.NewTask(200*time.Millisecond, job3), true)
+	if !assert.NoError(t, manager.AddTask("3", scheduler.NewTask(200*time.Millisecond, job3), true), "error was not expected") {
+		return
+	}
 
 	time.Sleep(401 * time.Millisecond)
 
@@ -171,4 +183,33 @@ func TestInexistentTask(t *testing.T) {
 	if !assert.Error(t, manager.StartTask("y"), "expected 'error' when removing a non existing task") {
 		return
 	}
+}
+
+// TestIfTaskExists - tests if a task already exists
+func TestIfTaskExists(t *testing.T) {
+
+	_, manager := createScheduler("x", false)
+
+	if !assert.False(t, manager.Exists("y"), "expected 'false'") {
+		return
+	}
+
+	assert.True(t, manager.Exists("x"), "expected 'true'")
+}
+
+// TestDuplicatedTask - tests when the same task is added twice
+func TestDuplicatedTask(t *testing.T) {
+
+	job1, manager := createScheduler("1", true)
+
+	time.Sleep(200 * time.Millisecond)
+
+	job2 := &IncJob{}
+	if !assert.Error(t, manager.AddTask("1", scheduler.NewTask(100*time.Millisecond, job2), true), "expected a error") {
+		return
+	}
+
+	time.Sleep(201 * time.Millisecond)
+
+	assert.Equal(t, 4, job1.counter, "expected four increments and no interruption")
 }
