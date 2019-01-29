@@ -46,8 +46,8 @@ func New(config *Config, logger *zap.Logger) (*Manager, error) {
 		feedbackChannel:               make(chan int, defaultChannelSize),
 		terminateElectionChannel:      make(chan bool, terminalChannelSize),
 		clusterConnectionEventChannel: nil,
-		electionFlowChannel:           nil,
-		nodeFlowChannel:               nil,
+		electionFlowChannel:           make(chan int, terminalChannelSize),
+		nodeFlowChannel:               make(chan int, terminalChannelSize),
 		disconnectedEvent:             zk.Event{Type: EventDisconnected},
 		clusterNodes:                  map[string]bool{},
 	}, nil
@@ -284,9 +284,9 @@ func (m *Manager) disconnect() {
 	if m.zkConnection != nil && m.zkConnection.State() != zk.StateDisconnected {
 		m.zkConnection.Close()
 		time.Sleep(2 * time.Second)
-		m.logInfo("Close", "ZK connection closed")
+		m.logInfo("Close", "zk connection closed")
 	} else {
-		m.logInfo("Close", "ZK connection is already closed")
+		m.logInfo("Close", "zk connection is already closed")
 	}
 }
 
