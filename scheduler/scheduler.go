@@ -21,22 +21,22 @@ func New() *Manager {
 }
 
 // AddTask - adds a new task
-func (m *Manager) AddTask(id string, task *Task, autoStart bool) error {
+func (m *Manager) AddTask(task *Task, autoStart bool) error {
 
-	if _, exists := m.taskMap[id]; exists {
+	if _, exists := m.taskMap[task.ID]; exists {
 
-		return fmt.Errorf("task id %s already exists", id)
+		return fmt.Errorf("task id %s already exists", task.ID)
 	}
 
-	m.taskMap[id] = task
+	m.taskMap[task.ID] = task
 
 	if autoStart {
 
 		if task.running {
-			return fmt.Errorf("task id %s already is running", id)
+			return fmt.Errorf("task id %s already is running", task.ID)
 		}
 
-		m.taskMap[id].Start()
+		m.taskMap[task.ID].Start()
 	}
 
 	return nil
@@ -118,8 +118,8 @@ func (m *Manager) GetNumTasks() int {
 	return len(m.taskMap)
 }
 
-// GetTasks - returns a list of task names
-func (m *Manager) GetTasks() []string {
+// GetTasksIDs - returns a list of task IDs
+func (m *Manager) GetTasksIDs() []string {
 
 	tasks := make([]string, len(m.taskMap))
 	i := 0
@@ -129,4 +129,28 @@ func (m *Manager) GetTasks() []string {
 	}
 
 	return tasks
+}
+
+// GetTasks - returns a list of tasks
+func (m *Manager) GetTasks() []interface{} {
+
+	tasks := make([]interface{}, len(m.taskMap))
+	i := 0
+	for _, v := range m.taskMap {
+		tasks[i] = v
+		i++
+	}
+
+	return tasks
+}
+
+// GetTask - returns a task by it's ID
+func (m *Manager) GetTask(id string) interface{} {
+
+	if t, ok := m.taskMap[id]; ok {
+
+		return t
+	}
+
+	return nil
 }
