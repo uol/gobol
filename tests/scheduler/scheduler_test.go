@@ -244,3 +244,43 @@ func TestTaskList(t *testing.T) {
 		}
 	}
 }
+
+// TestIfTaskIsRunning - tests if a task is running
+func TestIfTaskIsRunning(t *testing.T) {
+
+	job, manager := createScheduler("x", false)
+
+	if !assert.False(t, manager.IsRunning("x"), "the task should be stopped") {
+		return
+	}
+
+	err := manager.StartTask("x")
+	if err != nil {
+		panic(err)
+	}
+
+	time.Sleep(201 * time.Millisecond)
+
+	assert.Equal(t, 2, job.counter, "expected 2 increments and no interruption")
+
+	if !assert.True(t, manager.IsRunning("x"), "the task should be running") {
+		return
+	}
+
+	time.Sleep(201 * time.Millisecond)
+
+	assert.Equal(t, 4, job.counter, "expected 2 increments and no interruption")
+
+	err = manager.StopTask("x")
+	if err != nil {
+		panic(err)
+	}
+
+	time.Sleep(201 * time.Millisecond)
+
+	assert.Equal(t, 4, job.counter, "expected 2 increments and no interruption")
+
+	if !assert.False(t, manager.IsRunning("x"), "the task should be stopped") {
+		return
+	}
+}
