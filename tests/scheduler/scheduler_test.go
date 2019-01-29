@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -30,7 +31,7 @@ func createScheduler(taskId string, autoStart bool) (*IncJob, *scheduler.Manager
 	job := &IncJob{}
 
 	manager := scheduler.New()
-	err := manager.AddTask(taskId, scheduler.NewTask(100*time.Millisecond, job), autoStart)
+	err := manager.AddTask(scheduler.NewTask(taskId, 100*time.Millisecond, job), autoStart)
 	if err != nil {
 		panic(err)
 	}
@@ -120,12 +121,12 @@ func TestSimultaneousTasks(t *testing.T) {
 	job1, manager := createScheduler("1", true)
 
 	job2 := &IncJob{}
-	if !assert.NoError(t, manager.AddTask("2", scheduler.NewTask(50*time.Millisecond, job2), true), "error was not expected") {
+	if !assert.NoError(t, manager.AddTask(scheduler.NewTask("2", 50*time.Millisecond, job2), true), "error was not expected") {
 		return
 	}
 
 	job3 := &IncJob{}
-	if !assert.NoError(t, manager.AddTask("3", scheduler.NewTask(200*time.Millisecond, job3), true), "error was not expected") {
+	if !assert.NoError(t, manager.AddTask(scheduler.NewTask("3", 200*time.Millisecond, job3), true), "error was not expected") {
 		return
 	}
 
@@ -206,7 +207,7 @@ func TestDuplicatedTask(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	job2 := &IncJob{}
-	if !assert.Error(t, manager.AddTask("1", scheduler.NewTask(100*time.Millisecond, job2), true), "expected a error") {
+	if !assert.Error(t, manager.AddTask(scheduler.NewTask("1", 100*time.Millisecond, job2), true), "expected a error") {
 		return
 	}
 
@@ -224,7 +225,7 @@ func TestTaskList(t *testing.T) {
 
 	for i := 1; i < len(tasksNames); i++ {
 		job := &IncJob{}
-		if !assert.NoError(t, manager.AddTask(tasksNames[i], scheduler.NewTask(50*time.Millisecond, job), true), "error was not expected") {
+		if !assert.NoError(t, manager.AddTask(scheduler.NewTask(tasksNames[i], 50*time.Millisecond, job), true), "error was not expected") {
 			return
 		}
 	}
@@ -232,7 +233,7 @@ func TestTaskList(t *testing.T) {
 	assert.Equal(t, len(tasksNames), manager.GetNumTasks(), fmt.Sprintf("expected %d tasks", len(tasksNames)))
 	assert.Len(t, manager.GetTasks(), len(tasksNames), fmt.Sprintf("expected %d tasks", len(tasksNames)))
 
-	tasks := manager.GetTasks()
+	tasks := manager.GetTasksIDs()
 	taskMap := map[string]bool{}
 	for _, name := range tasks {
 		taskMap[name] = true
@@ -283,4 +284,51 @@ func TestIfTaskIsRunning(t *testing.T) {
 	if !assert.False(t, manager.IsRunning("x"), "the task should be stopped") {
 		return
 	}
+}
+
+// TestAccessors - tests some common accessors
+func TestAccessors(t *testing.T) {
+
+	job1, manager := createScheduler("x", false)
+
+	job2 := &IncJob{}
+	if !assert.NoError(t, manager.AddTask(scheduler.NewTask("y", 50*time.Millisecond, job2), true), "error was not expected") {
+		return
+	}
+
+	job3 := &IncJob{}
+	if !assert.NoError(t, manager.AddTask(scheduler.NewTask("z", 50*time.Millisecond, job3), true), "error was not expected") {
+		return
+	}
+
+	if !assert.True(t, reflect.DeepEqual(job1, manager.GetTask("x").(*scheduler.Task).Job), "expected the same job1") {
+		return
+	}
+
+	if !assert.True(t, reflect.DeepEqual(job2, manager.GetTask("y").(*scheduler.Task).Job), "expected the same job2") {
+		return
+	}
+
+	if !assert.True(t, reflect.DeepEqual(job3, manager.GetTask("z").(*scheduler.Task).Job), "expected the same job3") {
+		return
+	}
+
+	jobMap := map[string]*IncJob{
+		"x": job1,
+		"y": job2,
+		"z": job3,
+	}
+
+	tasksInterface := manager.GetTasks()
+	for _, taskInterface := range tasksInterface {
+		curTask := taskInterface.(*scheduler.Task)
+		expectedJob, ok := jobMap[curTask.ID]
+		if !assert.True(t, ok, fmt.Sprintf("expected the task '%s'", curTask.ID)) {
+			return
+		}
+		if !assert.True(t, reflect.DeepEqual(curTask.Job.(*IncJob), expectedJob), "expected the same job") {
+			return
+		}
+	}
+
 }

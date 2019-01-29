@@ -17,17 +17,19 @@ type job interface {
 // Task - a scheduled task
 type Task struct {
 	ticker   *time.Ticker
-	duration time.Duration
-	job      job
+	ID       string
+	Duration time.Duration
+	Job      job
 	running  bool
 }
 
 // NewTask - creates a new task
-func NewTask(duration time.Duration, job job) *Task {
+func NewTask(id string, duration time.Duration, job job) *Task {
 
 	return &Task{
-		duration: duration,
-		job:      job,
+		ID:       id,
+		Duration: duration,
+		Job:      job,
 		running:  false,
 	}
 }
@@ -39,12 +41,12 @@ func (t *Task) Start() {
 		t.ticker.Stop()
 	}
 
-	t.ticker = time.NewTicker(t.duration)
+	t.ticker = time.NewTicker(t.Duration)
 
 	go func() {
 		for {
 			<-t.ticker.C
-			t.job.Execute()
+			t.Job.Execute()
 		}
 	}()
 
