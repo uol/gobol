@@ -50,6 +50,19 @@ func (m *Manager) Exists(id string) bool {
 	return exists
 }
 
+// IsRunning - checks if a task is running
+func (m *Manager) IsRunning(id string) bool {
+
+	task, exists := m.taskMap[id]
+
+	if exists {
+
+		return task.running
+	}
+
+	return false
+}
+
 // RemoveTask - removes a task
 func (m *Manager) RemoveTask(id string) bool {
 
