@@ -56,6 +56,9 @@ func (t *Task) Start() {
 // Stop - stops the task
 func (t *Task) Stop() {
 
-	t.ticker.Stop()
+	if t.ticker != nil {
+		t.ticker.Stop()
+	}
+
 	t.running = false
 }
