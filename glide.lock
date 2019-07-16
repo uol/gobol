@@ -1,5 +1,5 @@
 hash: 97c65da54690153461b6e0d1849a37f0c748d1650d282aebc21f8b2008584a95
-updated: 2019-05-10T19:53:22.765778336-03:00
+updated: 2019-07-16T14:03:26.58160792-03:00
 imports:
 - name: github.com/armon/go-metrics
   version: f0300d1749da6fa982027e449ec0c7a145510c3c
@@ -18,7 +18,7 @@ imports:
 - name: github.com/hailocab/go-hostpool
   version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
 - name: github.com/hashicorp/consul
-  version: ea5210a30e154f4da9a4c8e729b45b8ce7b9b92c
+  version: 501c22b5563935713596034d47a1cbdef1ec1904
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -36,7 +36,7 @@ imports:
   subpackages:
   - coordinate
 - name: github.com/jinzhu/gorm
-  version: b7156195f7f3415f97c20abbd6aff894b847fee8
+  version: 836fb2c19d84dac7b0272958dfb9af7cf0d0ade4
   subpackages:
   - dialects/postgres
 - name: github.com/jinzhu/inflection
