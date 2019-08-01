@@ -35,31 +35,44 @@ func NewManager(transport Transport, backend *Backend, defaultTags map[string]st
 	}, nil
 }
 
-// Send - sends a event point
-func (m *Manager) Send(point interface{}) error {
+// SendNumberPoint - sends a number point
+func (m *Manager) SendNumberPoint(point *NumberPoint) error {
 
-	fmt.Println("send manager")
 	if point == nil {
-		return fmt.Errorf("point is null")
+		return fmt.Errorf("number point is null")
 	}
 
 	if len(m.defaultTags) > 0 {
 
-		fmt.Println("add tag")
-
-		casted, ok := point.(*Point)
-		if !ok {
-			return fmt.Errorf("not a point type")
-		}
-
 		for t, v := range m.defaultTags {
-			casted.Tags[t] = v
+
+			point.Tags[t] = v
 		}
 	}
 
-	fmt.Println("send transport")
+	m.transport.PointChannel() <- point
 
-	return m.transport.Send(point)
+	return nil
+}
+
+// SendTextPoint - sends a text point
+func (m *Manager) SendTextPoint(point *TextPoint) error {
+
+	if point == nil {
+		return fmt.Errorf("texty point is null")
+	}
+
+	if len(m.defaultTags) > 0 {
+
+		for t, v := range m.defaultTags {
+
+			point.Tags[t] = v
+		}
+	}
+
+	m.transport.PointChannel() <- point
+
+	return nil
 }
 
 // Shutdown - shuts down the transport

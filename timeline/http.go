@@ -2,7 +2,6 @@ package timeline
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,7 +11,11 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // HTTPTransport - implements the HTTP transport
 type HTTPTransport struct {
@@ -20,45 +23,46 @@ type HTTPTransport struct {
 	httpClient        *http.Client
 	batchSendInterval time.Duration
 	pointChannel      chan interface{}
-	serviceEndpoint   string
 	serviceURL        string
+	configuration     *HTTPTransportConfig
 	logger            *zap.Logger
 }
 
 // HTTPTransportConfig - has all HTTP event manager configurations
 type HTTPTransportConfig struct {
-	BatchSendInterval string
-	BufferSize        int
-	ServiceEndpoint   string
-	RequestTimeout    string
-	logger            *zap.Logger
+	BufferSize             int
+	BatchSendInterval      string
+	ServiceEndpoint        string
+	Method                 string
+	RequestTimeout         string
+	ExpectedResponseStatus int
 }
 
 // NewHTTPTransport - creates a new HTTP event manager
-func NewHTTPTransport(config *HTTPTransportConfig, logger *zap.Logger) (*HTTPTransport, error) {
+func NewHTTPTransport(configuration *HTTPTransportConfig, logger *zap.Logger) (*HTTPTransport, error) {
 
-	if config == nil {
+	if configuration == nil {
 		return nil, fmt.Errorf("null configuration found")
 	}
 
-	if config.BufferSize <= 0 {
-		return nil, fmt.Errorf("invalid buffer size: %d", config.BufferSize)
+	if configuration.BufferSize <= 0 {
+		return nil, fmt.Errorf("invalid buffer size: %d", configuration.BufferSize)
 	}
 
-	sendIntervalDuration, err := time.ParseDuration(config.BatchSendInterval)
+	sendIntervalDuration, err := time.ParseDuration(configuration.BatchSendInterval)
 	if err != nil {
 		return nil, err
 	}
 
-	requestTimeoutDuration, err := time.ParseDuration(config.RequestTimeout)
+	requestTimeoutDuration, err := time.ParseDuration(configuration.RequestTimeout)
 	if err != nil {
 		return nil, err
 	}
 
 	m := &HTTPTransport{
 		batchSendInterval: sendIntervalDuration,
-		pointChannel:      make(chan interface{}, config.BufferSize),
-		serviceEndpoint:   config.ServiceEndpoint,
+		pointChannel:      make(chan interface{}, configuration.BufferSize),
+		configuration:     configuration,
 		httpClient:        util.CreateHTTPClient(requestTimeoutDuration, true),
 		logger:            logger,
 	}
@@ -66,13 +70,10 @@ func NewHTTPTransport(config *HTTPTransportConfig, logger *zap.Logger) (*HTTPTra
 	return m, err
 }
 
-// Send - send a new event using the parent Point interface
-func (t *HTTPTransport) Send(point interface{}) error {
+// PointChannel - send a new point
+func (t *HTTPTransport) PointChannel() chan<- interface{} {
 
-	fmt.Println("send http")
-	t.pointChannel <- point
-
-	return nil
+	return t.pointChannel
 }
 
 // ConfigureBackend - configures the backend
@@ -82,7 +83,14 @@ func (t *HTTPTransport) ConfigureBackend(backend *Backend) error {
 		return fmt.Errorf("no backend was configured")
 	}
 
-	t.serviceURL = fmt.Sprintf("http://%s:%d/%s", backend.Host, backend.Port, t.serviceEndpoint)
+	t.serviceURL = fmt.Sprintf("http://%s:%d/%s", backend.Host, backend.Port, t.configuration.ServiceEndpoint)
+
+	lf := []zapcore.Field{
+		zap.String("package", "timeline"),
+		zap.String("func", "ConfigureBackend"),
+	}
+
+	t.logger.Info(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL), lf...)
 
 	go t.transferData()
 
@@ -93,12 +101,13 @@ func (t *HTTPTransport) ConfigureBackend(backend *Backend) error {
 func (t *HTTPTransport) transferData() {
 
 	lf := []zapcore.Field{
-		zap.String("package", "event"),
+		zap.String("package", "timeline"),
 		zap.String("func", "transferData"),
 	}
 
 	t.logger.Info("initializing transfer data loop...", lf...)
 
+outterFor:
 	for {
 		<-time.After(t.batchSendInterval)
 
@@ -107,8 +116,18 @@ func (t *HTTPTransport) transferData() {
 
 		t.logger.Debug("draining points from the buffer...", lf...)
 
-		for point := range t.pointChannel {
-			points = append(points, point)
+	innerLoop:
+		for {
+			select {
+			case point, ok := <-t.pointChannel:
+				if !ok {
+					t.logger.Info("breaking data transfer loop", lf...)
+					break outterFor
+				}
+				points = append(points, point)
+			default:
+				break innerLoop
+			}
 		}
 
 		numPoints = len(points)
@@ -127,7 +146,9 @@ func (t *HTTPTransport) transferData() {
 			continue
 		}
 
-		req, err := http.NewRequest("PUT", t.serviceURL, bytes.NewBuffer(payload))
+		fmt.Println(string(payload))
+
+		req, err := http.NewRequest(t.configuration.Method, t.serviceURL, bytes.NewBuffer(payload))
 		if err != nil {
 			t.logger.Error(fmt.Sprintf("error creating request: %s", err.Error()), lf...)
 			continue
@@ -141,15 +162,14 @@ func (t *HTTPTransport) transferData() {
 			continue
 		}
 
-		if res.StatusCode != http.StatusNoContent {
+		if res.StatusCode != t.configuration.ExpectedResponseStatus {
 
 			reqResponse, err := ioutil.ReadAll(res.Body)
 			if err != nil {
-				t.logger.Error(fmt.Sprintf("error reading response body: %s", err.Error()), lf...)
+				t.logger.Error(fmt.Sprintf("error reading body: %s", err.Error()), lf...)
 			} else {
 				t.logger.Error(fmt.Sprintf("error body: %s", string(reqResponse)), lf...)
 			}
-
 		} else {
 
 			t.logger.Info(fmt.Sprintf("batch of %d points was sent!", numPoints), lf...)

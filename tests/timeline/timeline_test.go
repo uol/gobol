@@ -2,6 +2,7 @@ package timeline_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -47,10 +48,12 @@ func createTimelineManager() *timeline.Manager {
 	}
 
 	transportConf := timeline.HTTPTransportConfig{
-		ServiceEndpoint:   "/api/put",
-		RequestTimeout:    "1s",
-		BatchSendInterval: "1s",
-		BufferSize:        5,
+		ServiceEndpoint:        "/api/put",
+		RequestTimeout:         "1s",
+		BatchSendInterval:      "1s",
+		BufferSize:             5,
+		Method:                 "PUT",
+		ExpectedResponseStatus: 201,
 	}
 
 	transport, err := timeline.NewHTTPTransport(&transportConf, logger)
@@ -104,7 +107,7 @@ func newTextPoint(text string) *timeline.TextPoint {
 }
 
 // testRequestData - tests the request data
-func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected interface{}) bool {
+func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected interface{}, isNumber bool) bool {
 
 	result := true
 
@@ -115,77 +118,110 @@ func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected
 
 	if result {
 
-		if expectedCastedPoint, ok := castToPoint(expected); ok {
+		if isNumber {
 
-			var number *timeline.NumberPoint
-			err := json.Unmarshal([]byte(requestData.Body), number)
-			if err == nil {
-				unmarshalledPoint, _ := castToPoint(number)
-				expectedTypedCastedPoint := castToNumberPoint(t, expectedCastedPoint)
-
-				result = result && assert.Equal(t, expectedTypedCastedPoint.Value, number.Value)
-
-				return result && testPoint(t, expectedCastedPoint, unmarshalledPoint)
+			var actual []timeline.NumberPoint
+			fmt.Println(requestData.Body)
+			err := json.Unmarshal([]byte(requestData.Body), &actual)
+			if !assert.Nil(t, err, "error unmarshalling to number point") {
+				return false
 			}
 
-			var text *timeline.TextPoint
-			err = json.Unmarshal([]byte(requestData.Body), text)
-			if err == nil {
-				unmarshalledPoint, _ := castToPoint(text)
-				expectedTypedCastedPoint := castToTextPoint(t, expectedCastedPoint)
+			return testNumberPoint(t, expected, actual)
+		}
 
-				result = result && assert.Equal(t, expectedTypedCastedPoint.Text, text.Text)
+		var actual []timeline.TextPoint
+		err := json.Unmarshal([]byte(requestData.Body), &actual)
+		if !assert.Nil(t, err, "error unmarshalling to text point") {
+			return false
+		}
 
-				return result && testPoint(t, expectedCastedPoint, unmarshalledPoint)
-			}
+		return testTextPoint(t, expected, actual)
+	}
 
-		} else {
+	return result
+}
 
-			result = result && assert.Fail(t, "error casting points")
+// testTextPoint - compares two points
+func testTextPoint(t *testing.T, expected interface{}, actual interface{}) bool {
+
+	if !assert.NotNil(t, expected, "expected value cannot be null") {
+		return false
+	}
+
+	if !assert.NotNil(t, actual, "actual value cannot be null") {
+		return false
+	}
+
+	expectedNumbers, ok := expected.([]*timeline.TextPoint)
+	if !ok && !assert.True(t, ok, "expected value must be a text point type") {
+		return false
+	}
+
+	actualNumbers, ok := actual.([]timeline.TextPoint)
+	if !ok && !assert.True(t, ok, "actual value must be a text point type") {
+		return false
+	}
+
+	if !assert.Len(t, actualNumbers, len(expectedNumbers), "expected %d text points", len(expectedNumbers)) {
+		return false
+	}
+
+	result := true
+
+	for i := 0; i < len(expectedNumbers); i++ {
+
+		result = result && assert.Equal(t, expectedNumbers[i].Metric, actualNumbers[i].Metric, "text point's metric differs")
+		result = result && assert.Equal(t, expectedNumbers[i].Timestamp, actualNumbers[i].Timestamp, "text point's timestamp differs")
+		result = result && assert.True(t, reflect.DeepEqual(expectedNumbers[i].Tags, actualNumbers[i].Tags), "text point's tags differs")
+		result = result && assert.Equal(t, expectedNumbers[i].Text, actualNumbers[i].Text, "text point's value differs")
+
+		if !result {
+			return false
 		}
 	}
 
 	return result
 }
 
-// castToPoint - cast the instance to Point type
-func castToPoint(point interface{}) (*timeline.Point, bool) {
+// testNumberPoint - compares two points
+func testNumberPoint(t *testing.T, expected interface{}, actual interface{}) bool {
 
-	c, ok := point.(*timeline.Point)
+	if !assert.NotNil(t, expected, "expected value cannot be null") {
+		return false
+	}
 
-	return c, ok
-}
+	if !assert.NotNil(t, actual, "actual value cannot be null") {
+		return false
+	}
 
-// castToNumberPoint - cast the instance to NumberPoint type
-func castToNumberPoint(t *testing.T, point interface{}) *timeline.NumberPoint {
+	expectedNumbers, ok := expected.([]*timeline.NumberPoint)
+	if !ok && !assert.True(t, ok, "expected value must be a number point type") {
+		return false
+	}
 
-	c, ok := point.(*timeline.NumberPoint)
-	assert.True(t, ok, "expected a number type point")
+	actualNumbers, ok := actual.([]timeline.NumberPoint)
+	if !ok && !assert.True(t, ok, "actual value must be a number point type") {
+		return false
+	}
 
-	return c
-}
-
-// castToTextPoint - cast the instance to TextPoint type
-func castToTextPoint(t *testing.T, point interface{}) *timeline.TextPoint {
-
-	c, ok := point.(*timeline.TextPoint)
-	assert.True(t, ok, "expected a text type point")
-
-	return c
-}
-
-// testPoint - compares two points
-func testPoint(t *testing.T, expected *timeline.Point, actualInterface interface{}) bool {
+	if !assert.Len(t, actualNumbers, len(expectedNumbers), "expected %d number points", len(expectedNumbers)) {
+		return false
+	}
 
 	result := true
 
-	actual := actualInterface.(*timeline.Point)
+	for i := 0; i < len(expectedNumbers); i++ {
 
-	result = result && assert.NotNil(t, expected, "point cannot be null")
-	result = result && assert.NotNil(t, actual, "point cannot be null")
-	result = result && assert.Equal(t, expected.Metric, actual.Metric, "point's metric differs")
-	result = result && assert.Equal(t, expected.Timestamp, actual.Timestamp, "point's timestamp differs")
-	result = result && assert.True(t, reflect.DeepEqual(expected.Tags, actual.Tags), "point's tags differs")
+		result = result && assert.Equal(t, expectedNumbers[i].Metric, actualNumbers[i].Metric, "number point's metric differs")
+		result = result && assert.Equal(t, expectedNumbers[i].Timestamp, actualNumbers[i].Timestamp, "number point's timestamp differs")
+		result = result && assert.True(t, reflect.DeepEqual(expectedNumbers[i].Tags, actualNumbers[i].Tags), "number point's tags differs")
+		result = result && assert.Equal(t, expectedNumbers[i].Value, actualNumbers[i].Value, "number point's value differs")
+
+		if !result {
+			return false
+		}
+	}
 
 	return result
 }
@@ -201,9 +237,75 @@ func TestSendNumber(t *testing.T) {
 
 	number := newNumberPoint(1)
 
-	err := m.Send(number)
+	err := m.SendNumberPoint(number)
 	assert.NoError(t, err, "no error expected when sending number")
 
+	<-time.After(2 * time.Second)
+
 	requestData := httpserver.WaitForHTTPServerRequest(s)
-	testRequestData(t, requestData, number)
+	testRequestData(t, requestData, []*timeline.NumberPoint{number}, true)
+}
+
+// TestSendText - tests when the lib fires a event
+func TestSendText(t *testing.T) {
+
+	s := createTimeseriesBackend()
+	defer s.Close()
+
+	m := createTimelineManager()
+	defer m.Shutdown()
+
+	text := newTextPoint("test")
+
+	err := m.SendTextPoint(text)
+	assert.NoError(t, err, "no error expected when sending text")
+
+	<-time.After(2 * time.Second)
+
+	requestData := httpserver.WaitForHTTPServerRequest(s)
+	testRequestData(t, requestData, []*timeline.TextPoint{text}, false)
+}
+
+// TestSendNumberArray - tests when the lib fires a event
+func TestSendNumberArray(t *testing.T) {
+
+	s := createTimeseriesBackend()
+	defer s.Close()
+
+	m := createTimelineManager()
+	defer m.Shutdown()
+
+	numbers := []*timeline.NumberPoint{newNumberPoint(1), newNumberPoint(2), newNumberPoint(3)}
+
+	for _, n := range numbers {
+		err := m.SendNumberPoint(n)
+		assert.NoError(t, err, "no error expected when sending number")
+	}
+
+	<-time.After(2 * time.Second)
+
+	requestData := httpserver.WaitForHTTPServerRequest(s)
+	testRequestData(t, requestData, numbers, true)
+}
+
+// TestSendTextArray - tests when the lib fires a event
+func TestSendTextArray(t *testing.T) {
+
+	s := createTimeseriesBackend()
+	defer s.Close()
+
+	m := createTimelineManager()
+	defer m.Shutdown()
+
+	texts := []*timeline.TextPoint{newTextPoint("1"), newTextPoint("2"), newTextPoint("3")}
+
+	for _, n := range texts {
+		err := m.SendTextPoint(n)
+		assert.NoError(t, err, "no error expected when sending text")
+	}
+
+	<-time.After(2 * time.Second)
+
+	requestData := httpserver.WaitForHTTPServerRequest(s)
+	testRequestData(t, requestData, texts, false)
 }
