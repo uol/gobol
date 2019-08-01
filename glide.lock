@@ -1,5 +1,5 @@
-hash: 97c65da54690153461b6e0d1849a37f0c748d1650d282aebc21f8b2008584a95
-updated: 2019-05-10T19:53:22.765778336-03:00
+hash: c53c67c255b6fa4c731e4863ee6db35f034c16eaeabc44fd0d5219bff9403719
+updated: 2019-07-30T13:56:22.684490746-03:00
 imports:
 - name: github.com/armon/go-metrics
   version: f0300d1749da6fa982027e449ec0c7a145510c3c
@@ -18,7 +18,7 @@ imports:
 - name: github.com/hailocab/go-hostpool
   version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
 - name: github.com/hashicorp/consul
-  version: ea5210a30e154f4da9a4c8e729b45b8ce7b9b92c
+  version: 501c22b5563935713596034d47a1cbdef1ec1904
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -36,11 +36,13 @@ imports:
   subpackages:
   - coordinate
 - name: github.com/jinzhu/gorm
-  version: b7156195f7f3415f97c20abbd6aff894b847fee8
+  version: 836fb2c19d84dac7b0272958dfb9af7cf0d0ade4
   subpackages:
   - dialects/postgres
 - name: github.com/jinzhu/inflection
-  version: 04140366298a54a039076d798123ffa108fff46c
+  version: f5c5f50e6090ae76a29240b61ae2a90dd810112e
+- name: github.com/json-iterator/go
+  version: 27518f6661eba504be5a7a9a9f6d9460d892ade3
 - name: github.com/julienschmidt/httprouter
   version: 348b672cd90d8190f8240323e372ecd1e66b59dc
 - name: github.com/lib/pq
@@ -63,7 +65,7 @@ imports:
   subpackages:
   - zk
 - name: github.com/uol/go-solr
-  version: 2b20b79d603c54b3bfb42db257ed8322b3489f52
+  version: 88954f7f66307d572c5fc59d6ba31d19a0ca9888
   subpackages:
   - solr
 - name: go.uber.org/atomic
@@ -87,6 +89,10 @@ testImports:
   version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
   subpackages:
   - spew
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd
 - name: github.com/pmezard/go-difflib
   version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
   subpackages:
