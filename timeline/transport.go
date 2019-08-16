@@ -9,6 +9,9 @@ type Transport interface {
 	// ConfigureBackend - configures the backend
 	ConfigureBackend(backend *Backend) error
 
+	// Start - starts this transport
+	Start() error
+
 	// Close - closes this transport
 	Close()
 }
