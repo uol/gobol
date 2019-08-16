@@ -2,7 +2,6 @@ package timeline_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -15,11 +14,6 @@ import (
 	"github.com/uol/gobol/tester/httpserver"
 	"github.com/uol/gobol/timeline"
 )
-
-var defaultTags = map[string]string{
-	"host": "unit-test-host",
-	"ttl":  "1",
-}
 
 // createTimeseriesBackend - creates a new test server simulating a timeseries backend
 func createTimeseriesBackend() *httpserver.HTTPServer {
@@ -40,7 +34,7 @@ func createTimeseriesBackend() *httpserver.HTTPServer {
 }
 
 // createTimelineManager - creates a new timeline manager
-func createTimelineManager() *timeline.Manager {
+func createTimelineManager(start bool) *timeline.Manager {
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -66,9 +60,13 @@ func createTimelineManager() *timeline.Manager {
 		Port: httpserver.TestServerPort,
 	}
 
-	manager, err := timeline.NewManager(transport, &backend, defaultTags)
+	manager, err := timeline.NewManager(transport, &backend)
 	if err != nil {
 		panic(err)
+	}
+
+	if start {
+		manager.Start()
 	}
 
 	return manager
@@ -121,7 +119,6 @@ func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected
 		if isNumber {
 
 			var actual []timeline.NumberPoint
-			fmt.Println(requestData.Body)
 			err := json.Unmarshal([]byte(requestData.Body), &actual)
 			if !assert.Nil(t, err, "error unmarshalling to number point") {
 				return false
@@ -226,19 +223,43 @@ func testNumberPoint(t *testing.T, expected interface{}, actual interface{}) boo
 	return result
 }
 
+// toGenericParametersN - converts a number point to generic parameters
+func toGenericParametersN(point *timeline.NumberPoint) []interface{} {
+
+	return []interface{}{
+		"metric", point.Metric,
+		"timestamp", point.Timestamp,
+		"value", point.Value,
+		"tags", point.Tags,
+	}
+}
+
+// toGenericParametersT - converts a number point to generic parameters
+func toGenericParametersT(point *timeline.TextPoint) []interface{} {
+
+	return []interface{}{
+		"metric", point.Metric,
+		"timestamp", point.Timestamp,
+		"text", point.Text,
+		"tags", point.Tags,
+	}
+}
+
 // TestSendNumber - tests when the lib fires a event
 func TestSendNumber(t *testing.T) {
 
 	s := createTimeseriesBackend()
 	defer s.Close()
 
-	m := createTimelineManager()
+	m := createTimelineManager(true)
 	defer m.Shutdown()
 
 	number := newNumberPoint(1)
 
-	err := m.SendNumberPoint(number)
-	assert.NoError(t, err, "no error expected when sending number")
+	err := m.SendNumberPoint(toGenericParametersN(number)...)
+	if !assert.NoError(t, err, "no error expected when sending number") {
+		return
+	}
 
 	<-time.After(2 * time.Second)
 
@@ -252,12 +273,12 @@ func TestSendText(t *testing.T) {
 	s := createTimeseriesBackend()
 	defer s.Close()
 
-	m := createTimelineManager()
+	m := createTimelineManager(true)
 	defer m.Shutdown()
 
 	text := newTextPoint("test")
 
-	err := m.SendTextPoint(text)
+	err := m.SendTextPoint(toGenericParametersT(text)...)
 	assert.NoError(t, err, "no error expected when sending text")
 
 	<-time.After(2 * time.Second)
@@ -272,13 +293,13 @@ func TestSendNumberArray(t *testing.T) {
 	s := createTimeseriesBackend()
 	defer s.Close()
 
-	m := createTimelineManager()
+	m := createTimelineManager(true)
 	defer m.Shutdown()
 
 	numbers := []*timeline.NumberPoint{newNumberPoint(1), newNumberPoint(2), newNumberPoint(3)}
 
 	for _, n := range numbers {
-		err := m.SendNumberPoint(n)
+		err := m.SendNumberPoint(toGenericParametersN(n)...)
 		assert.NoError(t, err, "no error expected when sending number")
 	}
 
@@ -294,13 +315,13 @@ func TestSendTextArray(t *testing.T) {
 	s := createTimeseriesBackend()
 	defer s.Close()
 
-	m := createTimelineManager()
+	m := createTimelineManager(true)
 	defer m.Shutdown()
 
 	texts := []*timeline.TextPoint{newTextPoint("1"), newTextPoint("2"), newTextPoint("3")}
 
 	for _, n := range texts {
-		err := m.SendTextPoint(n)
+		err := m.SendTextPoint(toGenericParametersT(n)...)
 		assert.NoError(t, err, "no error expected when sending text")
 	}
 
@@ -308,4 +329,72 @@ func TestSendTextArray(t *testing.T) {
 
 	requestData := httpserver.WaitForHTTPServerRequest(s)
 	testRequestData(t, requestData, texts, false)
+}
+
+// TestSendCustomNumber - tests configuring the json variables
+func TestSendCustomNumber(t *testing.T) {
+
+	s := createTimeseriesBackend()
+	defer s.Close()
+
+	m := createTimelineManager(false)
+	defer m.Shutdown()
+
+	number := newNumberPoint(1.0)
+
+	transport := m.GetTransport().(*timeline.HTTPTransport)
+
+	// only value is variable
+	err := transport.OverrideNumberPointJSONMapping(number, "value")
+	if !assert.NoError(t, err, "no error adding custom configuration") {
+		return
+	}
+
+	m.Start()
+
+	err = m.SendNumberPoint("value", 5.0)
+	if !assert.NoError(t, err, "no error expected when sending number") {
+		return
+	}
+
+	number.Value = 5.0
+
+	<-time.After(2 * time.Second)
+
+	requestData := httpserver.WaitForHTTPServerRequest(s)
+	testRequestData(t, requestData, []*timeline.NumberPoint{number}, true)
+}
+
+// TestSendCustomText - tests configuring the json variables
+func TestSendCustomText(t *testing.T) {
+
+	s := createTimeseriesBackend()
+	defer s.Close()
+
+	m := createTimelineManager(false)
+	defer m.Shutdown()
+
+	text := newTextPoint("woohoo")
+
+	transport := m.GetTransport().(*timeline.HTTPTransport)
+
+	// only value is variable
+	err := transport.OverrideTextPointJSONMapping(text, "text")
+	if !assert.NoError(t, err, "no error adding custom configuration") {
+		return
+	}
+
+	m.Start()
+
+	err = m.SendTextPoint("text", "modified")
+	if !assert.NoError(t, err, "no error expected when sending text") {
+		return
+	}
+
+	text.Text = "modified"
+
+	<-time.After(2 * time.Second)
+
+	requestData := httpserver.WaitForHTTPServerRequest(s)
+	testRequestData(t, requestData, []*timeline.TextPoint{text}, false)
 }

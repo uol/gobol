@@ -1,15 +1,18 @@
 package timeline
 
-import "fmt"
+import (
+	"fmt"
+
+	json "github.com/uol/serializer/json"
+)
 
 // Manager - the parent of all event managers
 type Manager struct {
-	defaultTags map[string]string
-	transport   Transport
+	transport Transport
 }
 
 // NewManager - creates a timeline manager
-func NewManager(transport Transport, backend *Backend, defaultTags map[string]string) (*Manager, error) {
+func NewManager(transport Transport, backend *Backend) (*Manager, error) {
 
 	if transport == nil {
 		return nil, fmt.Errorf("transport implementation is required")
@@ -24,59 +27,47 @@ func NewManager(transport Transport, backend *Backend, defaultTags map[string]st
 		return nil, err
 	}
 
-	if defaultTags == nil {
-
-		defaultTags = map[string]string{}
-	}
-
 	return &Manager{
-		transport:   transport,
-		defaultTags: defaultTags,
+		transport: transport,
 	}, nil
 }
 
 // SendNumberPoint - sends a number point
-func (m *Manager) SendNumberPoint(point *NumberPoint) error {
+func (m *Manager) SendNumberPoint(parameters ...interface{}) error {
 
-	if point == nil {
-		return fmt.Errorf("number point is null")
+	m.transport.PointChannel() <- json.Parameters{
+		Name:       numberPointJSON,
+		Parameters: parameters,
 	}
-
-	if len(m.defaultTags) > 0 {
-
-		for t, v := range m.defaultTags {
-
-			point.Tags[t] = v
-		}
-	}
-
-	m.transport.PointChannel() <- point
 
 	return nil
 }
 
 // SendTextPoint - sends a text point
-func (m *Manager) SendTextPoint(point *TextPoint) error {
+func (m *Manager) SendTextPoint(parameters ...interface{}) error {
 
-	if point == nil {
-		return fmt.Errorf("texty point is null")
+	m.transport.PointChannel() <- json.Parameters{
+		Name:       textPointJSON,
+		Parameters: parameters,
 	}
-
-	if len(m.defaultTags) > 0 {
-
-		for t, v := range m.defaultTags {
-
-			point.Tags[t] = v
-		}
-	}
-
-	m.transport.PointChannel() <- point
 
 	return nil
+}
+
+// Start - starts th transport
+func (m *Manager) Start() error {
+
+	return m.transport.Start()
 }
 
 // Shutdown - shuts down the transport
 func (m *Manager) Shutdown() {
 
 	m.transport.Close()
+}
+
+// GetTransport - returns the configured transport
+func (m *Manager) GetTransport() Transport {
+
+	return m.transport
 }
