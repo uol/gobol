@@ -14,6 +14,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+/**
+* The HTTP JSON transport implementation.
+* @author rnojiri
+**/
+
 // HTTPTransport - implements the HTTP transport
 type HTTPTransport struct {
 	Transport

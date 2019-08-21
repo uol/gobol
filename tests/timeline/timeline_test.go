@@ -15,6 +15,11 @@ import (
 	"github.com/uol/gobol/timeline"
 )
 
+/**
+* The timeline library tests.
+* @author rnojiri
+**/
+
 // createTimeseriesBackend - creates a new test server simulating a timeseries backend
 func createTimeseriesBackend() *httpserver.HTTPServer {
 

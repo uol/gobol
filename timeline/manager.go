@@ -6,6 +6,11 @@ import (
 	json "github.com/uol/serializer/json"
 )
 
+/**
+* Manages the transport and backend configuration.
+* @author rnojiri
+**/
+
 // Manager - the parent of all event managers
 type Manager struct {
 	transport Transport
@@ -52,6 +57,10 @@ func (m *Manager) SendTextPoint(parameters ...interface{}) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) AggregateNumberPoint() {
+
 }
 
 // Start - starts th transport
