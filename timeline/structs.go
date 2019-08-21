@@ -1,5 +1,10 @@
 package timeline
 
+/**
+* All common structs used by the timeline library.
+* @author rnojiri
+**/
+
 // Point - the base point
 type Point struct {
 	Metric    string            `json:"metric"`

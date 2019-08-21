@@ -1,5 +1,10 @@
 package timeline
 
+/**
+* The transport interface to be implemented.
+* @author rnojiri
+**/
+
 // Transport - the implementation type to send a event
 type Transport interface {
 
