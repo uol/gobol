@@ -1,16 +1,15 @@
-package timeline_test
+package timeline_http_test
 
 import (
 	"encoding/json"
-	"net/http"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/stretchr/testify/assert"
-
+	"github.com/uol/gobol/structs"
 	"github.com/uol/gobol/tester/httpserver"
 	"github.com/uol/gobol/timeline"
 )
@@ -20,42 +19,10 @@ import (
 * @author rnojiri
 **/
 
-// createTimeseriesBackend - creates a new test server simulating a timeseries backend
-func createTimeseriesBackend() *httpserver.HTTPServer {
-
-	headers := http.Header{}
-	headers.Add("Content-type", "application/json")
-
-	responses := httpserver.ResponseData{
-		RequestData: httpserver.RequestData{
-			URI:     "/api/put",
-			Method:  "PUT",
-			Headers: headers,
-		},
-		Status: 201,
-	}
-
-	return httpserver.CreateNewTestHTTPServer([]httpserver.ResponseData{responses})
-}
-
 // createTimelineManager - creates a new timeline manager
 func createTimelineManager(start bool) *timeline.Manager {
 
 	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-
-	transportConf := timeline.HTTPTransportConfig{
-		ServiceEndpoint:        "/api/put",
-		RequestTimeout:         "1s",
-		BatchSendInterval:      "1s",
-		BufferSize:             5,
-		Method:                 "PUT",
-		ExpectedResponseStatus: 201,
-	}
-
-	transport, err := timeline.NewHTTPTransport(&transportConf, logger)
 	if err != nil {
 		panic(err)
 	}
@@ -65,48 +32,21 @@ func createTimelineManager(start bool) *timeline.Manager {
 		Port: httpserver.TestServerPort,
 	}
 
+	transport := createHTTPTransport(logger)
+
 	manager, err := timeline.NewManager(transport, &backend)
 	if err != nil {
 		panic(err)
 	}
 
 	if start {
-		manager.Start()
+		err = manager.Start()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return manager
-}
-
-// newNumberPoint - creates a new number point
-func newNumberPoint(value float64) *timeline.NumberPoint {
-
-	return &timeline.NumberPoint{
-		Point: timeline.Point{
-			Metric:    "number-metric",
-			Timestamp: time.Now().Unix(),
-			Tags: map[string]string{
-				"type":      "number",
-				"customTag": "number-test",
-			},
-		},
-		Value: value,
-	}
-}
-
-// newTextPoint - creates a new text point
-func newTextPoint(text string) *timeline.TextPoint {
-
-	return &timeline.TextPoint{
-		Point: timeline.Point{
-			Metric:    "text-metric",
-			Timestamp: time.Now().Unix(),
-			Tags: map[string]string{
-				"type":      "text",
-				"customTag": "text-test",
-			},
-		},
-		Text: text,
-	}
 }
 
 // testRequestData - tests the request data
@@ -123,7 +63,7 @@ func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected
 
 		if isNumber {
 
-			var actual []timeline.NumberPoint
+			var actual []structs.NumberPoint
 			err := json.Unmarshal([]byte(requestData.Body), &actual)
 			if !assert.Nil(t, err, "error unmarshalling to number point") {
 				return false
@@ -132,7 +72,7 @@ func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected
 			return testNumberPoint(t, expected, actual)
 		}
 
-		var actual []timeline.TextPoint
+		var actual []structs.TextPoint
 		err := json.Unmarshal([]byte(requestData.Body), &actual)
 		if !assert.Nil(t, err, "error unmarshalling to text point") {
 			return false
@@ -155,12 +95,12 @@ func testTextPoint(t *testing.T, expected interface{}, actual interface{}) bool 
 		return false
 	}
 
-	expectedNumbers, ok := expected.([]*timeline.TextPoint)
+	expectedNumbers, ok := expected.([]*structs.TextPoint)
 	if !ok && !assert.True(t, ok, "expected value must be a text point type") {
 		return false
 	}
 
-	actualNumbers, ok := actual.([]timeline.TextPoint)
+	actualNumbers, ok := actual.([]structs.TextPoint)
 	if !ok && !assert.True(t, ok, "actual value must be a text point type") {
 		return false
 	}
@@ -197,12 +137,12 @@ func testNumberPoint(t *testing.T, expected interface{}, actual interface{}) boo
 		return false
 	}
 
-	expectedNumbers, ok := expected.([]*timeline.NumberPoint)
+	expectedNumbers, ok := expected.([]*structs.NumberPoint)
 	if !ok && !assert.True(t, ok, "expected value must be a number point type") {
 		return false
 	}
 
-	actualNumbers, ok := actual.([]timeline.NumberPoint)
+	actualNumbers, ok := actual.([]structs.NumberPoint)
 	if !ok && !assert.True(t, ok, "actual value must be a number point type") {
 		return false
 	}
@@ -229,7 +169,7 @@ func testNumberPoint(t *testing.T, expected interface{}, actual interface{}) boo
 }
 
 // toGenericParametersN - converts a number point to generic parameters
-func toGenericParametersN(point *timeline.NumberPoint) []interface{} {
+func toGenericParametersN(point *structs.NumberPoint) []interface{} {
 
 	return []interface{}{
 		"metric", point.Metric,
@@ -240,7 +180,7 @@ func toGenericParametersN(point *timeline.NumberPoint) []interface{} {
 }
 
 // toGenericParametersT - converts a number point to generic parameters
-func toGenericParametersT(point *timeline.TextPoint) []interface{} {
+func toGenericParametersT(point *structs.TextPoint) []interface{} {
 
 	return []interface{}{
 		"metric", point.Metric,
@@ -261,7 +201,7 @@ func TestSendNumber(t *testing.T) {
 
 	number := newNumberPoint(1)
 
-	err := m.SendNumberPoint(toGenericParametersN(number)...)
+	err := m.SendHTTP(numberPoint, toGenericParametersN(number)...)
 	if !assert.NoError(t, err, "no error expected when sending number") {
 		return
 	}
@@ -269,7 +209,7 @@ func TestSendNumber(t *testing.T) {
 	<-time.After(2 * time.Second)
 
 	requestData := httpserver.WaitForHTTPServerRequest(s)
-	testRequestData(t, requestData, []*timeline.NumberPoint{number}, true)
+	testRequestData(t, requestData, []*structs.NumberPoint{number}, true)
 }
 
 // TestSendText - tests when the lib fires a event
@@ -283,13 +223,13 @@ func TestSendText(t *testing.T) {
 
 	text := newTextPoint("test")
 
-	err := m.SendTextPoint(toGenericParametersT(text)...)
+	err := m.SendHTTP(textPoint, toGenericParametersT(text)...)
 	assert.NoError(t, err, "no error expected when sending text")
 
 	<-time.After(2 * time.Second)
 
 	requestData := httpserver.WaitForHTTPServerRequest(s)
-	testRequestData(t, requestData, []*timeline.TextPoint{text}, false)
+	testRequestData(t, requestData, []*structs.TextPoint{text}, false)
 }
 
 // TestSendNumberArray - tests when the lib fires a event
@@ -301,10 +241,10 @@ func TestSendNumberArray(t *testing.T) {
 	m := createTimelineManager(true)
 	defer m.Shutdown()
 
-	numbers := []*timeline.NumberPoint{newNumberPoint(1), newNumberPoint(2), newNumberPoint(3)}
+	numbers := []*structs.NumberPoint{newNumberPoint(1), newNumberPoint(2), newNumberPoint(3)}
 
 	for _, n := range numbers {
-		err := m.SendNumberPoint(toGenericParametersN(n)...)
+		err := m.SendHTTP(numberPoint, toGenericParametersN(n)...)
 		assert.NoError(t, err, "no error expected when sending number")
 	}
 
@@ -323,10 +263,10 @@ func TestSendTextArray(t *testing.T) {
 	m := createTimelineManager(true)
 	defer m.Shutdown()
 
-	texts := []*timeline.TextPoint{newTextPoint("1"), newTextPoint("2"), newTextPoint("3")}
+	texts := []*structs.TextPoint{newTextPoint("1"), newTextPoint("2"), newTextPoint("3")}
 
 	for _, n := range texts {
-		err := m.SendTextPoint(toGenericParametersT(n)...)
+		err := m.SendHTTP(textPoint, toGenericParametersT(n)...)
 		assert.NoError(t, err, "no error expected when sending text")
 	}
 
@@ -349,15 +289,17 @@ func TestSendCustomNumber(t *testing.T) {
 
 	transport := m.GetTransport().(*timeline.HTTPTransport)
 
+	const custom = "customPoint"
+
 	// only value is variable
-	err := transport.OverrideNumberPointJSONMapping(number, "value")
+	err := transport.AddJSONMapping(custom, *number, "value")
 	if !assert.NoError(t, err, "no error adding custom configuration") {
 		return
 	}
 
 	m.Start()
 
-	err = m.SendNumberPoint("value", 5.0)
+	err = m.SendHTTP(custom, "value", 5.0)
 	if !assert.NoError(t, err, "no error expected when sending number") {
 		return
 	}
@@ -367,7 +309,7 @@ func TestSendCustomNumber(t *testing.T) {
 	<-time.After(2 * time.Second)
 
 	requestData := httpserver.WaitForHTTPServerRequest(s)
-	testRequestData(t, requestData, []*timeline.NumberPoint{number}, true)
+	testRequestData(t, requestData, []*structs.NumberPoint{number}, true)
 }
 
 // TestSendCustomText - tests configuring the json variables
@@ -383,15 +325,17 @@ func TestSendCustomText(t *testing.T) {
 
 	transport := m.GetTransport().(*timeline.HTTPTransport)
 
+	const custom = "customPoint"
+
 	// only value is variable
-	err := transport.OverrideTextPointJSONMapping(text, "text")
+	err := transport.AddJSONMapping(custom, *text, "text")
 	if !assert.NoError(t, err, "no error adding custom configuration") {
 		return
 	}
 
 	m.Start()
 
-	err = m.SendTextPoint("text", "modified")
+	err = m.SendHTTP(custom, "text", "modified")
 	if !assert.NoError(t, err, "no error expected when sending text") {
 		return
 	}
@@ -401,5 +345,5 @@ func TestSendCustomText(t *testing.T) {
 	<-time.After(2 * time.Second)
 
 	requestData := httpserver.WaitForHTTPServerRequest(s)
-	testRequestData(t, requestData, []*timeline.TextPoint{text}, false)
+	testRequestData(t, requestData, []*structs.TextPoint{text}, false)
 }

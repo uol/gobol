@@ -1,4 +1,4 @@
-package timeline
+package structs
 
 /**
 * All common structs used by the timeline library.
@@ -22,16 +22,4 @@ type NumberPoint struct {
 type TextPoint struct {
 	Point
 	Text string `json:"text"`
-}
-
-// Backend - the destiny opentsdb backend
-type Backend struct {
-	Host string
-	Port int
-}
-
-// initialConfigs - has some basic configurations
-type initialConfigs struct {
-	Backend     *Backend
-	DefaultTags map[string]string
 }
