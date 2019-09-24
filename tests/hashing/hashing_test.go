@@ -8,46 +8,68 @@ import (
 	"github.com/uol/gobol/hashing"
 )
 
-// TestSHA256 - tests the sha256 implementation
-func TestSHA256(t *testing.T) {
+const (
+	testString = "hello world!"
+)
 
-	results, err := hashing.GenerateSHA256("hello world!")
-	if !assert.NoError(t, err, "error generating sha256") {
+// testResults - tests the results
+func testResults(t *testing.T, algorithm hashing.Algorithm, expectedResult string, result []byte, err error) {
+
+	if !assert.NoError(t, err, "error generating %s", algorithm) {
 		return
 	}
 
-	assert.Equal(t, "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", hex.EncodeToString(results), "unexpected sha256")
+	assert.Equal(t, expectedResult, hex.EncodeToString(result), "unexpected %s result", algorithm)
+}
+
+// TestSHA256 - tests the sha256 implementation
+func TestSHA256(t *testing.T) {
+
+	expected := "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9"
+	algorithm := hashing.SHA256
+
+	results, err := hashing.GenerateSHA256(testString)
+	testResults(t, algorithm, expected, results, err)
+
+	results, err = hashing.Generate(algorithm, testString)
+	testResults(t, algorithm, expected, results, err)
 }
 
 // TestSHA1 - tests the sha1 implementation
 func TestSHA1(t *testing.T) {
 
-	results, err := hashing.GenerateSHA1("hello world!")
-	if !assert.NoError(t, err, "error generating sha1") {
-		return
-	}
+	expected := "430ce34d020724ed75a196dfc2ad67c77772d169"
+	algorithm := hashing.SHA1
 
-	assert.Equal(t, "430ce34d020724ed75a196dfc2ad67c77772d169", hex.EncodeToString(results), "unexpected sha1")
+	results, err := hashing.GenerateSHA1(testString)
+	testResults(t, algorithm, expected, results, err)
+
+	results, err = hashing.Generate(algorithm, testString)
+	testResults(t, algorithm, expected, results, err)
 }
 
 // TestCRC32 - tests the crc32 implementation
 func TestCRC32(t *testing.T) {
 
-	results, err := hashing.GenerateCRC32("hello world!")
-	if !assert.NoError(t, err, "error generating crc32") {
-		return
-	}
+	expected := "03b4c26d"
+	algorithm := hashing.CRC32
 
-	assert.Equal(t, "03b4c26d", hex.EncodeToString(results), "unexpected crc32")
+	results, err := hashing.GenerateCRC32(testString)
+	testResults(t, algorithm, expected, results, err)
+
+	results, err = hashing.Generate(algorithm, testString)
+	testResults(t, algorithm, expected, results, err)
 }
 
 // TestMD5 - tests the md5 implementation
 func TestMD5(t *testing.T) {
 
-	results, err := hashing.GenerateMD5("hello world!")
-	if !assert.NoError(t, err, "error generating md5") {
-		return
-	}
+	expected := "fc3ff98e8c6a0d3087d515c0473f8677"
+	algorithm := hashing.MD5
 
-	assert.Equal(t, "fc3ff98e8c6a0d3087d515c0473f8677", hex.EncodeToString(results), "unexpected md5")
+	results, err := hashing.GenerateMD5(testString)
+	testResults(t, algorithm, expected, results, err)
+
+	results, err = hashing.Generate(algorithm, testString)
+	testResults(t, algorithm, expected, results, err)
 }

@@ -33,6 +33,16 @@ func int64ToByteArray(i int64) []byte {
 	return buffer
 }
 
+// uint64ToByteArray - converts a int64 to byte array
+func uint64ToByteArray(i uint64) []byte {
+
+	var buffer = make([]byte, 8)
+
+	binary.BigEndian.PutUint64(buffer, i)
+
+	return buffer
+}
+
 // boolToByteArray - converts a boolean to byte
 func boolToByteArray(b bool) []byte {
 
@@ -113,8 +123,10 @@ func getByteArray(v reflect.Value) ([]byte, error) {
 	switch v.Kind() {
 	case reflect.String:
 		return stringToByteArray(v.String()), nil
-	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8, reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8:
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8:
 		return int64ToByteArray(v.Int()), nil
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+		return uint64ToByteArray(v.Uint()), nil
 	case reflect.Float32, reflect.Float64:
 		return float64ToByteArray(v.Float()), nil
 	case reflect.Bool:

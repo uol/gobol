@@ -13,9 +13,9 @@ import (
 **/
 
 // generateByteArray - function wrapper
-func generateByteArray(t *testing.T, parameters interface{}) []byte {
+func generateByteArray(t *testing.T, parameters ...interface{}) []byte {
 
-	result, err := hashing.GenerateByteArray(parameters)
+	result, err := hashing.GenerateByteArray(parameters...)
 	if !assert.NoError(t, err, "expected no error") {
 		panic(err)
 	}
