@@ -124,7 +124,7 @@ outterFor:
 			continue
 		}
 
-		atomic.SwapUint32(&t.dataTransferInProgress, 1)
+		go atomic.SwapUint32(&t.dataTransferInProgress, 1)
 
 		points := []interface{}{}
 		numPoints := 0
@@ -162,7 +162,7 @@ outterFor:
 			t.logger.Info(fmt.Sprintf("batch of %d points were sent!", numPoints), lf...)
 		}
 
-		atomic.SwapUint32(&t.dataTransferInProgress, 0)
+		go atomic.SwapUint32(&t.dataTransferInProgress, 0)
 	}
 }
 
