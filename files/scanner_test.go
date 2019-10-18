@@ -10,8 +10,10 @@ import (
 	"stash.uol.intranet/s3-log-uploader/test"
 )
 
+//
 // Test the file scanner
 // @author rnojiri
+//
 
 func checkFiles(t *testing.T, scanPath string, resultFiles []*structs.File, expectedFiles []string) {
 

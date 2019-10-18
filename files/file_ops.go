@@ -9,8 +9,10 @@ import (
 	"time"
 )
 
+//
 // GZips files
 // @author rnojiri
+//
 
 // GZExtension - gz extension
 const GZExtension = ".gz"

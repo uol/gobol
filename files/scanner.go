@@ -10,8 +10,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Configuration struct with all file properties.
+//
+// File directory scanner implementation.
 // @author rnojiri
+//
 
 // Scanner - Scans a directory and find files using regular expression
 type Scanner struct {

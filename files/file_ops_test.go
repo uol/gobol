@@ -10,8 +10,10 @@ import (
 	"stash.uol.intranet/s3-log-uploader/test"
 )
 
+//
 // Test all functions from file operations package
 // @author rnojiri
+//
 
 func TestGzipFile(t *testing.T) {
 
