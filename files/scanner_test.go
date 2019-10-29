@@ -4,10 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"stash.uol.intranet/s3-log-uploader/files"
-	"stash.uol.intranet/s3-log-uploader/structs"
-	"stash.uol.intranet/s3-log-uploader/test"
+	"github.com/uol/gobol/files"
+	"github.com/uol/gobol/saw"
+	"go.uber.org/zap"
 )
 
 //
@@ -15,7 +14,16 @@ import (
 // @author rnojiri
 //
 
-func checkFiles(t *testing.T, scanPath string, resultFiles []*structs.File, expectedFiles []string) {
+// getLogger - creates a test logger
+func getLogger(t *testing.T) *zap.Logger {
+
+	logger, err := saw.New("DEBUG", "QA")
+	assert.NoError(t, err)
+
+	return logger
+}
+
+func checkFiles(t *testing.T, resultFiles []*files.File, expectedFiles []string) bool {
 
 	m := map[string]bool{}
 
@@ -24,91 +32,103 @@ func checkFiles(t *testing.T, scanPath string, resultFiles []*structs.File, expe
 	}
 
 	for _, file := range expectedFiles {
-		assert.True(t, m[scanPath+"/"+file])
+		if !assert.True(t, m[file]) {
+			return false
+		}
 	}
+
+	return true
 }
 
-func testScan(t *testing.T, regexp, subpath string, minSize int64, expectedFiles []string, ignoredFiles []string) {
+func testScan(t *testing.T, regexp string, minSize int64, expectedFiles []string, ignoredFiles []string) {
 
-	s := files.NewScanner(regexp, minSize, test.GetLogger(t))
+	s := files.NewScanner(regexp, minSize, getLogger(t))
 
-	scanPath := test.GetScanPathRoot(subpath)
+	scanPath := getScanPathRoot("")
 	r, err := s.Scan(scanPath)
 	assert.NoError(t, err)
 	assert.Len(t, r.Errors, 0)
 	assert.Len(t, r.Files, len(expectedFiles))
 	assert.Len(t, r.Ignored, len(ignoredFiles))
 
-	checkFiles(t, scanPath, r.Files, expectedFiles)
-	checkFiles(t, scanPath, r.Ignored, ignoredFiles)
+	checkFiles(t, r.Files, expectedFiles)
+	checkFiles(t, r.Ignored, ignoredFiles)
 }
 
 func TestScanAllFiles(t *testing.T) {
 
+	root := getScanPathRoot("")
+
 	expected := []string{
-		"gzip/gziped-large-text.log.gz",
-		"gzip/large-text.log",
-		"rootfolder/subfolder/test.log",
-		"rootfolder/subfolder/test.log.gz",
-		"common.go",
-		"rootfolder/empty.log",
-		"rootfolder/small.log",
+		root + "gzip/gziped-large-text.log.gz",
+		root + "gzip/large-text.log",
+		root + "rootfolder/subfolder/test.log",
+		root + "rootfolder/subfolder/test.log.gz",
+		root + "common.go",
+		root + "rootfolder/empty.log",
+		root + "rootfolder/small.log",
 	}
 
 	ignored := []string{}
 
-	testScan(t, ".*", "test", 0, expected, ignored)
+	testScan(t, ".*", 0, expected, ignored)
 }
 
 func TestScanSingleFile(t *testing.T) {
 
+	root := getScanPathRoot("")
+
 	expected := []string{
-		"common.go",
+		root + "common.go",
 	}
 
 	ignored := []string{
-		"gzip/gziped-large-text.log.gz",
-		"gzip/large-text.log",
-		"rootfolder/subfolder/test.log",
-		"rootfolder/subfolder/test.log.gz",
-		"rootfolder/empty.log",
-		"rootfolder/small.log",
+		root + "gzip/gziped-large-text.log.gz",
+		root + "gzip/large-text.log",
+		root + "rootfolder/subfolder/test.log",
+		root + "rootfolder/subfolder/test.log.gz",
+		root + "rootfolder/empty.log",
+		root + "rootfolder/small.log",
 	}
 
-	testScan(t, "\\.go$", "test", 0, expected, ignored)
+	testScan(t, "\\.go$", 0, expected, ignored)
 }
 
 func TestScanNoFiles(t *testing.T) {
 
+	root := getScanPathRoot("")
+
 	expected := []string{}
 
 	ignored := []string{
-		"common.go",
-		"gzip/gziped-large-text.log.gz",
-		"gzip/large-text.log",
-		"rootfolder/subfolder/test.log",
-		"rootfolder/subfolder/test.log.gz",
-		"rootfolder/empty.log",
-		"rootfolder/small.log",
+		root + "common.go",
+		root + "gzip/gziped-large-text.log.gz",
+		root + "gzip/large-text.log",
+		root + "rootfolder/subfolder/test.log",
+		root + "rootfolder/subfolder/test.log.gz",
+		root + "rootfolder/empty.log",
+		root + "rootfolder/small.log",
 	}
 
-	testScan(t, "\\.exe$", "test", 0, expected, ignored)
+	testScan(t, "\\.exe$", 0, expected, ignored)
 }
 
 func TestScanWithMinSize(t *testing.T) {
 
+	root := getScanPathRoot("")
+
 	expected := []string{
-		"gzip/gziped-large-text.log.gz",
-		"gzip/large-text.log",
-		"rootfolder/subfolder/test.log",
-		"rootfolder/subfolder/test.log.gz",
-		"common.go",
+		root + "gzip/gziped-large-text.log.gz",
+		root + "gzip/large-text.log",
+		root + "rootfolder/subfolder/test.log",
+		root + "rootfolder/subfolder/test.log.gz",
+		root + "common.go",
 	}
 
 	ignored := []string{
-		"rootfolder/empty.log",
-		"rootfolder/small.log",
+		root + "rootfolder/empty.log",
+		root + "rootfolder/small.log",
 	}
 
-	testScan(t, ".*", "test", 3, expected, ignored)
+	testScan(t, ".*", 3, expected, ignored)
 }

@@ -1,13 +1,15 @@
 package files_test
 
 import (
+	"go/build"
+	"math/rand"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"stash.uol.intranet/s3-log-uploader/files"
-	"stash.uol.intranet/s3-log-uploader/test"
+	"github.com/uol/gobol/files"
 )
 
 //
@@ -15,9 +17,32 @@ import (
 // @author rnojiri
 //
 
+// getScanPathRoot - build a scan path
+func getScanPathRoot(path string) string {
+
+	gopath := os.Getenv("GOPATH")
+	if gopath == "" {
+		gopath = build.Default.GOPATH
+	}
+
+	return gopath + "src/github.com/uol/gobol/tests/files/" + path
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+// RandomString - generates random strings
+func RandomString(n int) string {
+	rand.Seed(int64(time.Now().Nanosecond()))
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return strings.ToLower(string(b))
+}
+
 func TestGzipFile(t *testing.T) {
 
-	filePath := test.GetScanPathRoot("test/gzip/large-text.log")
+	filePath := getScanPathRoot("gzip/large-text.log")
 
 	fileInfo, err := os.Stat(filePath)
 	err = files.GzipFile(filePath, filePath+".gz")
@@ -32,7 +57,7 @@ func TestGzipFile(t *testing.T) {
 
 func TestGzipDecompressFile(t *testing.T) {
 
-	filePath := test.GetScanPathRoot("test/gzip/gziped-large-text.log")
+	filePath := getScanPathRoot("gzip/gziped-large-text.log")
 
 	fileInfoGziped, err := os.Stat(filePath + ".gz")
 	err = files.GzipDecompressFile(filePath+".gz", filePath)
