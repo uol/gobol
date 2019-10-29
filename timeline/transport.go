@@ -46,6 +46,9 @@ type Transport interface {
 
 	// FlattenedPointToDataChannelItem - converts the flattened point to the data channel item one
 	FlattenedPointToDataChannelItem(point *FlattenerPoint) (interface{}, error)
+
+	// Serialize - renders the text using the configured serializer
+	Serialize(item interface{}) (string, error)
 }
 
 // transportCore - implements a default transport behaviour

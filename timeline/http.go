@@ -252,3 +252,9 @@ func (t *HTTPTransport) Close() {
 
 	t.core.Close()
 }
+
+// Serialize - renders the text using the configured serializer
+func (t *HTTPTransport) Serialize(item interface{}) (string, error) {
+
+	return t.serializer.SerializeGeneric(item)
+}
