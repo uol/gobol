@@ -2,6 +2,7 @@ package timeline_http_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -49,6 +50,30 @@ func createTimelineManager(start bool) *timeline.Manager {
 	return manager
 }
 
+// testSerializeCompareNumber - compares a serialized json and a json struct
+func testSerializeCompareNumber(t *testing.T, text string, expected interface{}) bool {
+
+	var actual []structs.NumberPoint
+	err := json.Unmarshal([]byte(text), &actual)
+	if !assert.Nil(t, err, "error unmarshalling to number point") {
+		return false
+	}
+
+	return testNumberPoint(t, expected, actual)
+}
+
+// testSerializeCompareText - compares a serialized json and a json struct
+func testSerializeCompareText(t *testing.T, text string, expected interface{}) bool {
+
+	var actual []structs.TextPoint
+	err := json.Unmarshal([]byte(text), &actual)
+	if !assert.Nil(t, err, "error unmarshalling to text point") {
+		return false
+	}
+
+	return testTextPoint(t, expected, actual)
+}
+
 // testRequestData - tests the request data
 func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected interface{}, isNumber bool) bool {
 
@@ -62,23 +87,10 @@ func testRequestData(t *testing.T, requestData *httpserver.RequestData, expected
 	if result {
 
 		if isNumber {
-
-			var actual []structs.NumberPoint
-			err := json.Unmarshal([]byte(requestData.Body), &actual)
-			if !assert.Nil(t, err, "error unmarshalling to number point") {
-				return false
-			}
-
-			return testNumberPoint(t, expected, actual)
+			return testSerializeCompareNumber(t, requestData.Body, expected)
 		}
 
-		var actual []structs.TextPoint
-		err := json.Unmarshal([]byte(requestData.Body), &actual)
-		if !assert.Nil(t, err, "error unmarshalling to text point") {
-			return false
-		}
-
-		return testTextPoint(t, expected, actual)
+		return testSerializeCompareText(t, requestData.Body, expected)
 	}
 
 	return result
@@ -346,4 +358,36 @@ func TestSendCustomText(t *testing.T) {
 
 	requestData := httpserver.WaitForHTTPServerRequest(s)
 	testRequestData(t, requestData, []*structs.TextPoint{text}, false)
+}
+
+// TestNumberSerialization - tests configuring the json variables
+func TestNumberSerialization(t *testing.T) {
+
+	m := createTimelineManager(false)
+	defer m.Shutdown()
+
+	number := newNumberPoint(15)
+
+	serialized, err := m.SerializeHTTP(numberPoint, toGenericParametersN(number)...)
+	if !assert.NoError(t, err, "no error expected when serializing number") {
+		return
+	}
+
+	testSerializeCompareNumber(t, fmt.Sprintf("[%s]", serialized), []*structs.NumberPoint{number})
+}
+
+// TestTextSerialization - tests configuring the json variables
+func TestTextSerialization(t *testing.T) {
+
+	m := createTimelineManager(false)
+	defer m.Shutdown()
+
+	text := newTextPoint("serialization")
+
+	serialized, err := m.SerializeHTTP(textPoint, toGenericParametersT(text)...)
+	if !assert.NoError(t, err, "no error expected when serializing text") {
+		return
+	}
+
+	testSerializeCompareText(t, fmt.Sprintf("[%s]", serialized), []*structs.TextPoint{text})
 }

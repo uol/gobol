@@ -313,3 +313,9 @@ func (t *OpenTSDBTransport) Close() {
 
 	t.core.Close()
 }
+
+// Serialize - renders the text using the configured serializer
+func (t *OpenTSDBTransport) Serialize(item interface{}) (string, error) {
+
+	return t.serializer.SerializeGeneric(item)
+}
