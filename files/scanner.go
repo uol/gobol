@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 //
@@ -19,32 +19,26 @@ import (
 type Scanner struct {
 	fileRegexp   *regexp.Regexp
 	minFileSize  int64
-	logger       *zap.Logger
 	filesFound   []*File
 	ignoredFiles []*File
 	errorsFound  []error
+	logger       *zerolog.Logger
 }
 
 // NewScanner - builds a new Scanner
-func NewScanner(fileRegexp string, minFileSize int64, logger *zap.Logger) *Scanner {
+func NewScanner(fileRegexp string, minFileSize int64) *Scanner {
 
-	lf := []zapcore.Field{
-		zap.String("package", "files"),
-		zap.String("func", "NewScanner"),
+	logger := log.With().Str("package", "files").Logger()
+
+	if e := logger.Info(); e.Enabled() {
+		e.Str("func", "NewScanner").Msg(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize))
 	}
-
-	logger.Info(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize), lf...)
 
 	return &Scanner{
 		fileRegexp:  regexp.MustCompile(fileRegexp),
 		minFileSize: minFileSize,
-		logger:      logger,
+		logger:      &logger,
 	}
-}
-
-var visitLogFields = []zapcore.Field{
-	zap.String("package", "files"),
-	zap.String("func", "visit"),
 }
 
 // visit - visits a file or a directory
@@ -56,7 +50,9 @@ func (s *Scanner) visit(path string, f os.FileInfo, err error) error {
 	}
 
 	if f.IsDir() {
-		s.logger.Debug("ignoring directory:"+path, visitLogFields...)
+		if e := s.logger.Debug(); e.Enabled() {
+			e.Str("func", "visit").Msg("ignoring directory:" + path)
+		}
 		return nil
 	}
 
@@ -68,10 +64,17 @@ func (s *Scanner) visit(path string, f os.FileInfo, err error) error {
 	}
 
 	if s.fileRegexp.MatchString(path) {
-		s.logger.Debug("file name matches with regexp: "+path, visitLogFields...)
+
+		if e := s.logger.Debug(); e.Enabled() {
+			e.Str("func", "visit").Msg("file name matches with regexp: " + path)
+		}
 
 		if file.Size < s.minFileSize {
-			s.logger.Debug(fmt.Sprintf("file does not have the minimum size: %s (%d/%d)", path, file.Size, s.minFileSize), visitLogFields...)
+
+			if e := s.logger.Debug(); e.Enabled() {
+				e.Str("func", "visit").Msg(fmt.Sprintf("file does not have the minimum size: %s (%d/%d)", path, file.Size, s.minFileSize))
+			}
+
 			file.Ignored = true
 			s.ignoredFiles = append(s.ignoredFiles, &file)
 			return nil
