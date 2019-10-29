@@ -5,23 +5,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/uol/gobol/files"
-	"github.com/uol/gobol/saw"
-	"go.uber.org/zap"
 )
 
 //
 // Test the file scanner
 // @author rnojiri
 //
-
-// getLogger - creates a test logger
-func getLogger(t *testing.T) *zap.Logger {
-
-	logger, err := saw.New("DEBUG", "QA")
-	assert.NoError(t, err)
-
-	return logger
-}
 
 func checkFiles(t *testing.T, resultFiles []*files.File, expectedFiles []string) bool {
 
@@ -42,7 +31,7 @@ func checkFiles(t *testing.T, resultFiles []*files.File, expectedFiles []string)
 
 func testScan(t *testing.T, regexp string, minSize int64, expectedFiles []string, ignoredFiles []string) {
 
-	s := files.NewScanner(regexp, minSize, getLogger(t))
+	s := files.NewScanner(regexp, minSize)
 
 	scanPath := getScanPathRoot("")
 	r, err := s.Scan(scanPath)

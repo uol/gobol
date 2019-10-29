@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
 	"github.com/uol/gobol/structs"
 	"github.com/uol/gobol/tester/httpserver"
@@ -23,17 +22,12 @@ import (
 // createTimelineManager - creates a new timeline manager
 func createTimelineManager(start bool) *timeline.Manager {
 
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-
 	backend := timeline.Backend{
 		Host: httpserver.TestServerHost,
 		Port: httpserver.TestServerPort,
 	}
 
-	transport := createHTTPTransport(logger)
+	transport := createHTTPTransport()
 
 	manager, err := timeline.NewManager(transport, &backend)
 	if err != nil {

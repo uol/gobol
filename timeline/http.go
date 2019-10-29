@@ -7,11 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/uol/gobol/util"
 	serializer "github.com/uol/serializer/json"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 /**
@@ -40,7 +38,7 @@ type HTTPTransportConfig struct {
 }
 
 // NewHTTPTransport - creates a new HTTP event manager
-func NewHTTPTransport(configuration *HTTPTransportConfig, logger *zap.Logger) (*HTTPTransport, error) {
+func NewHTTPTransport(configuration *HTTPTransportConfig) (*HTTPTransport, error) {
 
 	if configuration == nil {
 		return nil, fmt.Errorf("null configuration found")
@@ -58,13 +56,15 @@ func NewHTTPTransport(configuration *HTTPTransportConfig, logger *zap.Logger) (*
 		return nil, fmt.Errorf("value property is not configured")
 	}
 
+	logger := log.With().Str("package", "timeline/http").Logger()
+
 	s := serializer.New(configuration.SerializerBufferSize)
 
 	t := &HTTPTransport{
 		core: transportCore{
 			batchSendInterval: configuration.BatchSendInterval,
 			pointChannel:      make(chan interface{}, configuration.TransportBufferSize),
-			logger:            logger,
+			logger:            &logger,
 		},
 		configuration: configuration,
 		httpClient:    util.CreateHTTPClient(configuration.RequestTimeout, true),
@@ -91,13 +91,9 @@ func (t *HTTPTransport) ConfigureBackend(backend *Backend) error {
 
 	t.serviceURL = fmt.Sprintf("http://%s:%d/%s", backend.Host, backend.Port, t.configuration.ServiceEndpoint)
 
-	lf := []zapcore.Field{
-		zap.String("package", "timeline"),
-		zap.String("struct", "HTTPTransport"),
-		zap.String("func", "ConfigureBackend"),
+	if e := t.core.logger.Info(); e.Enabled() {
+		e.Str("func", "ConfigureBackend").Msg(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL))
 	}
-
-	t.core.logger.Info(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL), lf...)
 
 	return nil
 }

@@ -6,10 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/uol/gobol/hashing"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 /**
@@ -63,7 +62,7 @@ type Flattener struct {
 	pointMap      sync.Map
 	terminateChan chan struct{}
 	transport     Transport
-	logger        *zap.Logger
+	logger        *zerolog.Logger
 }
 
 // mapEntry - a map entry containing all values from a point
@@ -73,18 +72,20 @@ type mapEntry struct {
 }
 
 // NewFlattener - creates a new flattener
-func NewFlattener(transport Transport, configuration *FlattenerConfig, logger *zap.Logger) (*Flattener, error) {
+func NewFlattener(transport Transport, configuration *FlattenerConfig) (*Flattener, error) {
 
 	if transport == nil {
 		return nil, fmt.Errorf("transport implementation is required")
 	}
+
+	logger := log.With().Str("package", "timeline/flattener").Logger()
 
 	f := &Flattener{
 		configuration: configuration,
 		pointMap:      sync.Map{},
 		terminateChan: make(chan struct{}, 1),
 		transport:     transport,
-		logger:        logger,
+		logger:        &logger,
 	}
 
 	return f, nil
@@ -101,20 +102,18 @@ func (f *Flattener) Start() error {
 // beginCycle - begins the flattening loop cycle
 func (f *Flattener) beginCycle() {
 
-	lf := []zapcore.Field{
-		zap.String("package", "timeline"),
-		zap.String("struct", "Flattener"),
-		zap.String("func", "beginCycle"),
+	if e := f.logger.Info(); e.Enabled() {
+		e.Str("func", "beginCycle").Msg("starting flattening cycle")
 	}
-
-	f.logger.Info("starting flattening cycle")
 
 	for {
 		<-time.After(f.configuration.CycleDuration)
 
 		select {
 		case <-f.terminateChan:
-			f.logger.Info("breaking flattening cycle", lf...)
+			if e := f.logger.Info(); e.Enabled() {
+				e.Str("func", "beginCycle").Msg("breaking flattening cycle")
+			}
 			return
 		default:
 		}
@@ -134,7 +133,9 @@ func (f *Flattener) beginCycle() {
 			return true
 		})
 
-		f.logger.Info(fmt.Sprintf("%d points were flattened", count), lf...)
+		if e := f.logger.Info(); e.Enabled() {
+			e.Str("func", "beginCycle").Msg(fmt.Sprintf("%d points were flattened", count))
+		}
 	}
 }
 
@@ -175,25 +176,20 @@ func (f *Flattener) processEntry(entry *mapEntry) {
 	newValue, err := f.flatten(entry)
 	if err != nil {
 
-		lf := []zapcore.Field{
-			zap.String("package", "timeline"),
-			zap.String("struct", "Flattener"),
-			zap.String("func", "processEntry"),
+		if e := f.logger.Error(); e.Enabled() {
+			e.Str("func", "processEntry").Msg(err.Error())
 		}
 
-		f.logger.Error(err.Error(), lf...)
 		return
 	}
 
 	item, err := f.transport.FlattenedPointToDataChannelItem(newValue)
 	if err != nil {
-		lf := []zapcore.Field{
-			zap.String("package", "timeline"),
-			zap.String("struct", "Flattener"),
-			zap.String("func", "processEntry"),
+
+		if e := f.logger.Error(); e.Enabled() {
+			e.Str("func", "processEntry").Msg(err.Error())
 		}
 
-		f.logger.Error(err.Error(), lf...)
 		return
 	}
 
@@ -261,13 +257,9 @@ func (f *Flattener) flatten(entry *mapEntry) (*FlattenerPoint, error) {
 // Close - terminates the flattener and the transport
 func (f *Flattener) Close() {
 
-	lf := []zapcore.Field{
-		zap.String("package", "timeline"),
-		zap.String("struct", "Flattener"),
-		zap.String("func", "Close"),
+	if e := f.logger.Info(); e.Enabled() {
+		e.Str("func", "Close").Msg("closing...")
 	}
-
-	f.logger.Info("closing...", lf...)
 
 	f.transport.Close()
 
