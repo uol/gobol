@@ -2,10 +2,12 @@ package timeline_opentsdb_test
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/uol/gobol/hashing"
 	"github.com/uol/gobol/timeline"
@@ -32,7 +34,9 @@ func createTimelineManagerF(start bool, port int) *timeline.Manager {
 		HashingAlgorithm: hashing.SHA256,
 	}
 
-	flattener, err := timeline.NewFlattener(transport, conf)
+	l := zerolog.New(os.Stdout)
+
+	flattener, err := timeline.NewFlattener(transport, conf, &l)
 	if err != nil {
 		panic(err)
 	}

@@ -5,32 +5,26 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/uol/go-solr/solr"
 
 	"github.com/stretchr/testify/assert"
-
-	"go.uber.org/zap"
-
-	"github.com/uol/gobol/saw"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const solrURL = "http://172.17.0.3:8983/solr"
 
 // getLogger - creates the logger
-func getLogger(t *testing.T) (*zap.Logger, error) {
+func getLogger(t *testing.T) *zerolog.Logger {
 
-	logger, err := saw.New("DEBUG", "QA")
-	if err != nil {
-		t.Errorf(err.Error())
-		t.Fail()
-	}
+	l := zerolog.New(os.Stdout)
 
-	return logger, err
+	return &l
 }
 
 // RandStringBytes - generates random strings
@@ -46,7 +40,7 @@ func randStringBytes(n int) string {
 // initSolrService - initializes the solr service
 func initSolrService(t *testing.T) *SolrService {
 
-	logger, _ := getLogger(t)
+	logger := getLogger(t)
 
 	ss, err := NewSolrService(solrURL, logger)
 	if err != nil {
@@ -356,7 +350,7 @@ func TestDeleteDocumentByQuery(t *testing.T) {
 	id := "1"
 	name := "test1"
 	doc := solr.Document{
-		"id": id,
+		"id":   id,
 		"name": name,
 	}
 	err = populateCollection(t, doc, ss, collection)
@@ -399,7 +393,7 @@ func TestDeleteDocumentByID(t *testing.T) {
 	id := "2"
 	name := "test2"
 	doc := solr.Document{
-		"id": id,
+		"id":   id,
 		"name": name,
 	}
 	err = populateCollection(t, doc, ss, collection)
@@ -441,7 +435,7 @@ func TestDeleteDocumentByIDCommitFalse(t *testing.T) {
 	id := "3"
 	name := "test3"
 	doc := solr.Document{
-		"id": id,
+		"id":   id,
 		"name": name,
 	}
 	err = populateCollection(t, doc, ss, collection)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog"
+	"github.com/uol/gobol/logh"
 )
 
 /**
@@ -55,7 +55,7 @@ type transportCore struct {
 	transport         Transport
 	batchSendInterval time.Duration
 	pointChannel      chan interface{}
-	logger            *zerolog.Logger
+	loggers           *logh.EventLoggers
 }
 
 // DefaultTransportConfiguration - the default fields used by the transport configuration
@@ -91,8 +91,8 @@ func (c *DefaultTransportConfiguration) Validate() error {
 // Start - starts the transport
 func (t *transportCore) Start() error {
 
-	if e := t.logger.Info(); e.Enabled() {
-		e.Str("func", "Start").Str("component", "transportCore").Msg("starting transport...")
+	if t.loggers.Info != nil {
+		t.loggers.Info.Msg("starting transport...")
 	}
 
 	go t.transferDataLoop()
@@ -103,8 +103,8 @@ func (t *transportCore) Start() error {
 // transferDataLoop - transfers the data to the backend throught this transport
 func (t *transportCore) transferDataLoop() {
 
-	if e := t.logger.Info(); e.Enabled() {
-		e.Str("func", "transferDataLoop").Str("component", "transportCore").Msg("initializing transfer data loop...")
+	if t.loggers.Info != nil {
+		t.loggers.Info.Msg("initializing transfer data loop...")
 	}
 
 outterFor:
@@ -120,8 +120,8 @@ outterFor:
 			case point, ok := <-t.pointChannel:
 
 				if !ok {
-					if e := t.logger.Info(); e.Enabled() {
-						e.Str("func", "transferDataLoop").Str("component", "transportCore").Msg("breaking data transfer loop")
+					if t.loggers.Info != nil {
+						t.loggers.Info.Msg("breaking data transfer loop")
 					}
 					break outterFor
 				}
@@ -136,24 +136,24 @@ outterFor:
 		numPoints = len(points)
 
 		if numPoints == 0 {
-			if e := t.logger.Info(); e.Enabled() {
-				e.Str("func", "transferDataLoop").Str("component", "transportCore").Msg("buffer is empty, no data will be send")
+			if t.loggers.Info != nil {
+				t.loggers.Info.Msg("buffer is empty, no data will be send")
 			}
 			continue
 		}
 
-		if e := t.logger.Info(); e.Enabled() {
-			e.Str("func", "transferDataLoop").Str("component", "transportCore").Msg(fmt.Sprintf("sending a batch of %d points...", numPoints))
+		if t.loggers.Info != nil {
+			t.loggers.Info.Msg(fmt.Sprintf("sending a batch of %d points...", numPoints))
 		}
 
 		err := t.transport.TransferData(points)
 		if err != nil {
-			if e := t.logger.Error(); e.Enabled() {
-				e.Str("func", "transferDataLoop").Str("component", "transportCore").Msg(err.Error())
+			if t.loggers.Error != nil {
+				t.loggers.Error.Msg(err.Error())
 			}
 		} else {
-			if e := t.logger.Info(); e.Enabled() {
-				e.Str("func", "transferDataLoop").Str("component", "transportCore").Msg(fmt.Sprintf("batch of %d points were sent!", numPoints))
+			if t.loggers.Info != nil {
+				t.loggers.Info.Msg(fmt.Sprintf("batch of %d points were sent!", numPoints))
 			}
 		}
 
@@ -163,8 +163,8 @@ outterFor:
 // Close - closes the transport
 func (t *transportCore) Close() {
 
-	if e := t.logger.Info(); e.Enabled() {
-		e.Str("func", "Close").Str("component", "transportCore").Msg("closing...")
+	if t.loggers.Info != nil {
+		t.loggers.Info.Msg("closing...")
 	}
 
 	close(t.pointChannel)
