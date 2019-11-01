@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/gobol/logh"
 	"github.com/uol/gobol/util"
 	serializer "github.com/uol/serializer/json"
@@ -39,7 +38,7 @@ type HTTPTransportConfig struct {
 }
 
 // NewHTTPTransport - creates a new HTTP event manager
-func NewHTTPTransport(configuration *HTTPTransportConfig, logger *zerolog.Logger) (*HTTPTransport, error) {
+func NewHTTPTransport(configuration *HTTPTransportConfig) (*HTTPTransport, error) {
 
 	if configuration == nil {
 		return nil, fmt.Errorf("null configuration found")
@@ -63,7 +62,7 @@ func NewHTTPTransport(configuration *HTTPTransportConfig, logger *zerolog.Logger
 		core: transportCore{
 			batchSendInterval: configuration.BatchSendInterval,
 			pointChannel:      make(chan interface{}, configuration.TransportBufferSize),
-			loggers:           logh.CreateContexts(logger, true, false, false, true, false, false, "pkg", "timeline/http"),
+			loggers:           logh.CreateContexts(true, false, false, true, false, false, "pkg", "timeline/http"),
 		},
 		configuration: configuration,
 		httpClient:    util.CreateHTTPClient(configuration.RequestTimeout, true),

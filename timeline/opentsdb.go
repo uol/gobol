@@ -6,7 +6,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/gobol/logh"
 	serializer "github.com/uol/serializer/opentsdb"
 )
@@ -40,7 +39,7 @@ const (
 )
 
 // NewOpenTSDBTransport - creates a new openTSDB event manager
-func NewOpenTSDBTransport(configuration *OpenTSDBTransportConfig, logger *zerolog.Logger) (*OpenTSDBTransport, error) {
+func NewOpenTSDBTransport(configuration *OpenTSDBTransportConfig) (*OpenTSDBTransport, error) {
 
 	if configuration == nil {
 		return nil, fmt.Errorf("null configuration found")
@@ -64,7 +63,7 @@ func NewOpenTSDBTransport(configuration *OpenTSDBTransportConfig, logger *zerolo
 		core: transportCore{
 			batchSendInterval: configuration.BatchSendInterval,
 			pointChannel:      make(chan interface{}, configuration.TransportBufferSize),
-			loggers:           logh.CreateContexts(logger, true, false, false, true, false, false, "pkg", "timeline/opentsdb"),
+			loggers:           logh.CreateContexts(true, false, false, true, false, false, "pkg", "timeline/opentsdb"),
 		},
 		configuration: configuration,
 		serializer:    s,

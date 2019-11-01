@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/go-solr/solr"
 	"github.com/uol/gobol/logh"
 )
@@ -34,7 +33,7 @@ func (ss *SolrService) recoverFromFailure(funcName string) {
 }
 
 // NewSolrService - creates a new instance
-func NewSolrService(url string, logger *zerolog.Logger) (*SolrService, error) {
+func NewSolrService(url string) (*SolrService, error) {
 
 	sca, err := solr.NewCollectionsAdmin(url)
 	if err != nil {
@@ -43,7 +42,7 @@ func NewSolrService(url string, logger *zerolog.Logger) (*SolrService, error) {
 
 	return &SolrService{
 		solrCollectionsAdmin: sca,
-		loggers:              logh.CreateContexts(logger, true, false, false, true, false, false, "pkg", "solar/solr_service"),
+		loggers:              logh.CreateContexts(true, false, false, true, false, false, "pkg", "solar/solr_service"),
 		url:                  url,
 		solrInterfaceCache:   sync.Map{},
 	}, nil

@@ -5,12 +5,10 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/go-solr/solr"
 
 	"github.com/stretchr/testify/assert"
@@ -18,14 +16,6 @@ import (
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const solrURL = "http://172.17.0.3:8983/solr"
-
-// getLogger - creates the logger
-func getLogger(t *testing.T) *zerolog.Logger {
-
-	l := zerolog.New(os.Stdout)
-
-	return &l
-}
 
 // RandStringBytes - generates random strings
 func randStringBytes(n int) string {
@@ -40,9 +30,7 @@ func randStringBytes(n int) string {
 // initSolrService - initializes the solr service
 func initSolrService(t *testing.T) *SolrService {
 
-	logger := getLogger(t)
-
-	ss, err := NewSolrService(solrURL, logger)
+	ss, err := NewSolrService(solrURL)
 	if err != nil {
 		t.Errorf(err.Error())
 		panic(err)

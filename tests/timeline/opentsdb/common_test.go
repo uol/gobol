@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/uol/gobol/timeline"
 )
@@ -50,9 +48,7 @@ func createOpenTSDBTransport() *timeline.OpenTSDBTransport {
 		ReconnectionTimeout: 1 * time.Second,
 	}
 
-	l := zerolog.New(os.Stdout)
-
-	transport, err := timeline.NewOpenTSDBTransport(&transportConf, &l)
+	transport, err := timeline.NewOpenTSDBTransport(&transportConf)
 	if err != nil {
 		panic(err)
 	}

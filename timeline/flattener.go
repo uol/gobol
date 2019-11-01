@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/gobol/hashing"
 	"github.com/uol/gobol/logh"
 )
@@ -72,7 +71,7 @@ type mapEntry struct {
 }
 
 // NewFlattener - creates a new flattener
-func NewFlattener(transport Transport, configuration *FlattenerConfig, logger *zerolog.Logger) (*Flattener, error) {
+func NewFlattener(transport Transport, configuration *FlattenerConfig) (*Flattener, error) {
 
 	if transport == nil {
 		return nil, fmt.Errorf("transport implementation is required")
@@ -83,7 +82,7 @@ func NewFlattener(transport Transport, configuration *FlattenerConfig, logger *z
 		pointMap:      sync.Map{},
 		terminateChan: make(chan struct{}, 1),
 		transport:     transport,
-		loggers:       logh.CreateContexts(logger, true, true, false, false, false, false, "pkg", "timeline/flattener"),
+		loggers:       logh.CreateContexts(true, true, false, false, false, false, "pkg", "timeline/flattener"),
 	}
 
 	return f, nil
