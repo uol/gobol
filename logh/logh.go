@@ -161,7 +161,7 @@ func FatalLogger() *zerolog.Event {
 }
 
 // CreateContexts - creates loggers with context
-func CreateContexts(logger *zerolog.Logger, incInfo, incDebug, incWarning, incError, incFatal, incPanic bool, keyValues ...string) *EventLoggers {
+func CreateContexts(incInfo, incDebug, incWarning, incError, incFatal, incPanic bool, keyValues ...string) *EventLoggers {
 
 	numKeyValues := len(keyValues)
 	if numKeyValues%2 != 0 {

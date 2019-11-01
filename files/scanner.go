@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/gobol/logh"
 )
 
@@ -26,9 +25,9 @@ type Scanner struct {
 }
 
 // NewScanner - builds a new Scanner
-func NewScanner(fileRegexp string, minFileSize int64, logger *zerolog.Logger) *Scanner {
+func NewScanner(fileRegexp string, minFileSize int64) *Scanner {
 
-	eventLoggers := logh.CreateContexts(logger, true, true, false, false, false, false, "pkg", "files/scanner")
+	eventLoggers := logh.CreateContexts(true, true, false, false, false, false, "pkg", "files/scanner")
 
 	if eventLoggers.Info != nil {
 		eventLoggers.Info.Msg(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize))

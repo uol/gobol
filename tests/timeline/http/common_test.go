@@ -2,10 +2,8 @@ package timeline_http_test
 
 import (
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/gobol/structs"
 	"github.com/uol/gobol/tester/httpserver"
 	"github.com/uol/gobol/timeline"
@@ -56,9 +54,7 @@ func createHTTPTransport() *timeline.HTTPTransport {
 		ValueProperty:          "value",
 	}
 
-	l := zerolog.New(os.Stdout)
-
-	transport, err := timeline.NewHTTPTransport(&transportConf, &l)
+	transport, err := timeline.NewHTTPTransport(&transportConf)
 	if err != nil {
 		panic(err)
 	}

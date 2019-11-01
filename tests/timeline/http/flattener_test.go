@@ -1,11 +1,9 @@
 package timeline_http_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/uol/gobol/hashing"
 	"github.com/uol/gobol/structs"
 	"github.com/uol/gobol/tester/httpserver"
@@ -32,9 +30,7 @@ func createTimelineManagerF(start bool) *timeline.Manager {
 		HashingAlgorithm: hashing.SHA256,
 	}
 
-	l := zerolog.New(os.Stdout)
-
-	flattener, err := timeline.NewFlattener(transport, conf, &l)
+	flattener, err := timeline.NewFlattener(transport, conf)
 	if err != nil {
 		panic(err)
 	}
