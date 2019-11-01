@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/uol/gobol/logh"
 )
 
 //
@@ -22,22 +22,22 @@ type Scanner struct {
 	filesFound   []*File
 	ignoredFiles []*File
 	errorsFound  []error
-	logger       *zerolog.Logger
+	loggers      *logh.EventLoggers
 }
 
 // NewScanner - builds a new Scanner
-func NewScanner(fileRegexp string, minFileSize int64) *Scanner {
+func NewScanner(fileRegexp string, minFileSize int64, logger *zerolog.Logger) *Scanner {
 
-	logger := log.With().Str("package", "files").Logger()
+	eventLoggers := logh.CreateContexts(logger, true, true, false, false, false, false, "pkg", "files/scanner")
 
-	if e := logger.Info(); e.Enabled() {
-		e.Str("func", "NewScanner").Msg(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize))
+	if eventLoggers.Info != nil {
+		eventLoggers.Info.Msg(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize))
 	}
 
 	return &Scanner{
 		fileRegexp:  regexp.MustCompile(fileRegexp),
 		minFileSize: minFileSize,
-		logger:      &logger,
+		loggers:     eventLoggers,
 	}
 }
 
@@ -50,8 +50,8 @@ func (s *Scanner) visit(path string, f os.FileInfo, err error) error {
 	}
 
 	if f.IsDir() {
-		if e := s.logger.Debug(); e.Enabled() {
-			e.Str("func", "visit").Msg("ignoring directory:" + path)
+		if s.loggers.Debug != nil {
+			s.loggers.Debug.Msg("ignoring directory:" + path)
 		}
 		return nil
 	}
@@ -65,14 +65,14 @@ func (s *Scanner) visit(path string, f os.FileInfo, err error) error {
 
 	if s.fileRegexp.MatchString(path) {
 
-		if e := s.logger.Debug(); e.Enabled() {
-			e.Str("func", "visit").Msg("file name matches with regexp: " + path)
+		if s.loggers.Debug != nil {
+			s.loggers.Debug.Msg("file name matches with regexp: " + path)
 		}
 
 		if file.Size < s.minFileSize {
 
-			if e := s.logger.Debug(); e.Enabled() {
-				e.Str("func", "visit").Msg(fmt.Sprintf("file does not have the minimum size: %s (%d/%d)", path, file.Size, s.minFileSize))
+			if s.loggers.Debug != nil {
+				s.loggers.Debug.Msg(fmt.Sprintf("file does not have the minimum size: %s (%d/%d)", path, file.Size, s.minFileSize))
 			}
 
 			file.Ignored = true

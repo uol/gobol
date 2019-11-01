@@ -1,8 +1,10 @@
 package files_test
 
 import (
+	"os"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/uol/gobol/files"
 )
@@ -31,7 +33,8 @@ func checkFiles(t *testing.T, resultFiles []*files.File, expectedFiles []string)
 
 func testScan(t *testing.T, regexp string, minSize int64, expectedFiles []string, ignoredFiles []string) {
 
-	s := files.NewScanner(regexp, minSize)
+	l := zerolog.New(os.Stdout)
+	s := files.NewScanner(regexp, minSize, &l)
 
 	scanPath := getScanPathRoot("")
 	r, err := s.Scan(scanPath)

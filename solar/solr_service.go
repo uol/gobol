@@ -6,10 +6,9 @@ import (
 	"net/url"
 	"sync"
 
-	"go.uber.org/zap/zapcore"
-
+	"github.com/rs/zerolog"
 	"github.com/uol/go-solr/solr"
-	"go.uber.org/zap"
+	"github.com/uol/gobol/logh"
 )
 
 /**
@@ -20,7 +19,7 @@ import (
 // SolrService - struct
 type SolrService struct {
 	solrCollectionsAdmin *solr.CollectionsAdmin
-	logger               *zap.Logger
+	loggers              *logh.EventLoggers
 	url                  string
 	solrInterfaceCache   sync.Map
 }
@@ -28,16 +27,14 @@ type SolrService struct {
 // recoverFromFailure - recovers from a failure
 func (ss *SolrService) recoverFromFailure(funcName string) {
 	if r := recover(); r != nil {
-		lf := []zapcore.Field{
-			zap.String("package", "solar"),
-			zap.String("func", funcName),
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Str("func", funcName).Msg(fmt.Sprintf("recovered from: %s", r))
 		}
-		ss.logger.Error(fmt.Sprintf("recovered from: %s", r), lf...)
 	}
 }
 
 // NewSolrService - creates a new instance
-func NewSolrService(url string, logger *zap.Logger) (*SolrService, error) {
+func NewSolrService(url string, logger *zerolog.Logger) (*SolrService, error) {
 
 	sca, err := solr.NewCollectionsAdmin(url)
 	if err != nil {
@@ -46,7 +43,7 @@ func NewSolrService(url string, logger *zap.Logger) (*SolrService, error) {
 
 	return &SolrService{
 		solrCollectionsAdmin: sca,
-		logger:               logger,
+		loggers:              logh.CreateContexts(logger, true, false, false, true, false, false, "pkg", "solar/solr_service"),
 		url:                  url,
 		solrInterfaceCache:   sync.Map{},
 	}, nil
@@ -61,11 +58,9 @@ func (ss *SolrService) getSolrInterface(collection string) (*solr.SolrInterface,
 
 	si, err := solr.NewSolrInterface(ss.url, collection)
 	if err != nil {
-		lf := []zapcore.Field{
-			zap.String("package", "solar"),
-			zap.String("func", "getSolrInterface"),
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg("error creating a new instance of solr interface")
 		}
-		ss.logger.Error("error creating a new instance of solr interface", lf...)
 		return nil, err
 	}
 
@@ -79,18 +74,15 @@ func (ss *SolrService) AddDocument(collection string, commit bool, doc *solr.Doc
 
 	defer ss.recoverFromFailure("AddDocuments")
 
-	lf := []zapcore.Field{
-		zap.String("package", "solar"),
-		zap.String("func", "AddDocuments"),
-	}
-
 	if doc == nil {
 		return errors.New("document is null")
 	}
 
 	si, err := ss.getSolrInterface(collection)
 	if err != nil {
-		ss.logger.Error("error getting solr interface", lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg("error getting solr interface")
+		}
 		return err
 	}
 
@@ -101,11 +93,15 @@ func (ss *SolrService) AddDocument(collection string, commit bool, doc *solr.Doc
 
 	_, err = si.Add([]solr.Document{*doc}, 0, params)
 	if err != nil {
-		ss.logger.Error(fmt.Sprintf("error adding 1 document to the collection %s: %s", collection, err.Error()), lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg(fmt.Sprintf("error adding 1 document to the collection %s: %s", collection, err.Error()))
+		}
 		return err
 	}
 
-	ss.logger.Info(fmt.Sprintf("added 1 documents to the collection %s", collection), lf...)
+	if ss.loggers.Info != nil {
+		ss.loggers.Info.Msg(fmt.Sprintf("added 1 documents to the collection %s", collection))
+	}
 
 	return nil
 }
@@ -115,18 +111,15 @@ func (ss *SolrService) AddDocuments(collection string, commit bool, docs ...solr
 
 	defer ss.recoverFromFailure("AddDocuments")
 
-	lf := []zapcore.Field{
-		zap.String("package", "solar"),
-		zap.String("func", "AddDocuments"),
-	}
-
 	if docs == nil || len(docs) == 0 {
 		return errors.New("no documents to add")
 	}
 
 	si, err := ss.getSolrInterface(collection)
 	if err != nil {
-		ss.logger.Error("error getting solr interface", lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg("error getting solr interface")
+		}
 		return err
 	}
 
@@ -139,11 +132,15 @@ func (ss *SolrService) AddDocuments(collection string, commit bool, docs ...solr
 
 	_, err = si.Add(docs, 0, params)
 	if err != nil {
-		ss.logger.Error(fmt.Sprintf("error adding %d document to the collection %s: %s", numDocs, collection, err.Error()), lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg(fmt.Sprintf("error adding %d document to the collection %s: %s", numDocs, collection, err.Error()))
+		}
 		return err
 	}
 
-	ss.logger.Info(fmt.Sprintf("added %d documents to the collection %s", numDocs, collection), lf...)
+	if ss.loggers.Info != nil {
+		ss.loggers.Info.Msg(fmt.Sprintf("added %d documents to the collection %s", numDocs, collection))
+	}
 
 	return nil
 }
@@ -153,11 +150,6 @@ func (ss *SolrService) DeleteDocumentByID(collection string, commit bool, id str
 
 	defer ss.recoverFromFailure("DeleteDocumentByID")
 
-	lf := []zapcore.Field{
-		zap.String("package", "solar"),
-		zap.String("func", "DeleteDocumentByID"),
-	}
-
 	if id == "" {
 		return errors.New("document id not informed, no document will be deleted")
 	}
@@ -166,7 +158,9 @@ func (ss *SolrService) DeleteDocumentByID(collection string, commit bool, id str
 
 	err := ss.DeleteDocumentByQuery(collection, commit, query)
 	if err != nil {
-		ss.logger.Error(fmt.Sprintf("error deleting document %s of collection %s: %s", id, collection, err.Error()), lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg(fmt.Sprintf("error deleting document %s of collection %s: %s", id, collection, err.Error()))
+		}
 		return err
 	}
 
@@ -178,18 +172,15 @@ func (ss *SolrService) DeleteDocumentByQuery(collection string, commit bool, que
 
 	defer ss.recoverFromFailure("DeleteDocumentByQuery")
 
-	lf := []zapcore.Field{
-		zap.String("package", "solar"),
-		zap.String("func", "DeleteDocumentByQuery"),
-	}
-
 	if query == "" {
 		return errors.New("query not informed, no document will be deleted")
 	}
 
 	si, err := ss.getSolrInterface(collection)
 	if err != nil {
-		ss.logger.Error("error getting solr interface", lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg("error getting solr interface")
+		}
 		return err
 	}
 
@@ -203,11 +194,15 @@ func (ss *SolrService) DeleteDocumentByQuery(collection string, commit bool, que
 
 	_, err = si.Delete(doc, params)
 	if err != nil {
-		ss.logger.Error(fmt.Sprintf("error deleting document of collection %s with query %s: %s", collection, query, err.Error()), lf...)
+		if ss.loggers.Error != nil {
+			ss.loggers.Error.Msg(fmt.Sprintf("error deleting document of collection %s with query %s: %s", collection, query, err.Error()))
+		}
 		return err
 	}
 
-	ss.logger.Info(fmt.Sprintf("deleted document(s) of collection %s with query %s", collection, query), lf...)
+	if ss.loggers.Info != nil {
+		ss.loggers.Info.Msg(fmt.Sprintf("deleted document(s) of collection %s with query %s", collection, query))
+	}
 
 	return nil
 }

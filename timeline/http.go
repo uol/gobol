@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
+	"github.com/uol/gobol/logh"
 	"github.com/uol/gobol/util"
 	serializer "github.com/uol/serializer/json"
 )
@@ -38,7 +39,7 @@ type HTTPTransportConfig struct {
 }
 
 // NewHTTPTransport - creates a new HTTP event manager
-func NewHTTPTransport(configuration *HTTPTransportConfig) (*HTTPTransport, error) {
+func NewHTTPTransport(configuration *HTTPTransportConfig, logger *zerolog.Logger) (*HTTPTransport, error) {
 
 	if configuration == nil {
 		return nil, fmt.Errorf("null configuration found")
@@ -56,15 +57,13 @@ func NewHTTPTransport(configuration *HTTPTransportConfig) (*HTTPTransport, error
 		return nil, fmt.Errorf("value property is not configured")
 	}
 
-	logger := log.With().Str("package", "timeline/http").Logger()
-
 	s := serializer.New(configuration.SerializerBufferSize)
 
 	t := &HTTPTransport{
 		core: transportCore{
 			batchSendInterval: configuration.BatchSendInterval,
 			pointChannel:      make(chan interface{}, configuration.TransportBufferSize),
-			logger:            &logger,
+			loggers:           logh.CreateContexts(logger, true, false, false, true, false, false, "pkg", "timeline/http"),
 		},
 		configuration: configuration,
 		httpClient:    util.CreateHTTPClient(configuration.RequestTimeout, true),
@@ -91,8 +90,8 @@ func (t *HTTPTransport) ConfigureBackend(backend *Backend) error {
 
 	t.serviceURL = fmt.Sprintf("http://%s:%d/%s", backend.Host, backend.Port, t.configuration.ServiceEndpoint)
 
-	if e := t.core.logger.Info(); e.Enabled() {
-		e.Str("func", "ConfigureBackend").Msg(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL))
+	if t.core.loggers.Info != nil {
+		t.core.loggers.Info.Msg(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL))
 	}
 
 	return nil
