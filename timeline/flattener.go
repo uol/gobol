@@ -61,7 +61,7 @@ type Flattener struct {
 	pointMap      sync.Map
 	terminateChan chan struct{}
 	transport     Transport
-	loggers       *logh.EventLoggers
+	loggers       *logh.ContextualLogger
 }
 
 // mapEntry - a map entry containing all values from a point
@@ -82,7 +82,7 @@ func NewFlattener(transport Transport, configuration *FlattenerConfig) (*Flatten
 		pointMap:      sync.Map{},
 		terminateChan: make(chan struct{}, 1),
 		transport:     transport,
-		loggers:       logh.CreateContexts(true, true, false, false, false, false, "pkg", "timeline/flattener"),
+		loggers:       logh.CreateContextualLogger("pkg", "timeline/flattener"),
 	}
 
 	return f, nil
@@ -99,8 +99,8 @@ func (f *Flattener) Start() error {
 // beginCycle - begins the flattening loop cycle
 func (f *Flattener) beginCycle() {
 
-	if f.loggers.Info != nil {
-		f.loggers.Info.Msg("starting flattening cycle")
+	if logh.InfoEnabled {
+		f.loggers.Info().Msg("starting flattening cycle")
 	}
 
 	for {
@@ -108,8 +108,8 @@ func (f *Flattener) beginCycle() {
 
 		select {
 		case <-f.terminateChan:
-			if f.loggers.Info != nil {
-				f.loggers.Info.Msg("breaking flattening cycle")
+			if logh.InfoEnabled {
+				f.loggers.Info().Msg("breaking flattening cycle")
 			}
 			return
 		default:
@@ -130,8 +130,8 @@ func (f *Flattener) beginCycle() {
 			return true
 		})
 
-		if f.loggers.Info != nil {
-			f.loggers.Info.Msg(fmt.Sprintf("%d points were flattened", count))
+		if logh.InfoEnabled {
+			f.loggers.Info().Msg(fmt.Sprintf("%d points were flattened", count))
 		}
 	}
 }
@@ -173,8 +173,8 @@ func (f *Flattener) processEntry(entry *mapEntry) {
 	newValue, err := f.flatten(entry)
 	if err != nil {
 
-		if f.loggers.Error != nil {
-			f.loggers.Error.Msg(err.Error())
+		if logh.ErrorEnabled {
+			f.loggers.Error().Msg(err.Error())
 		}
 
 		return
@@ -183,8 +183,8 @@ func (f *Flattener) processEntry(entry *mapEntry) {
 	item, err := f.transport.FlattenedPointToDataChannelItem(newValue)
 	if err != nil {
 
-		if f.loggers.Error != nil {
-			f.loggers.Error.Msg(err.Error())
+		if logh.ErrorEnabled {
+			f.loggers.Error().Msg(err.Error())
 		}
 
 		return
@@ -254,8 +254,8 @@ func (f *Flattener) flatten(entry *mapEntry) (*FlattenerPoint, error) {
 // Close - terminates the flattener and the transport
 func (f *Flattener) Close() {
 
-	if f.loggers.Info != nil {
-		f.loggers.Info.Msg("closing...")
+	if logh.InfoEnabled {
+		f.loggers.Info().Msg("closing...")
 	}
 
 	f.transport.Close()

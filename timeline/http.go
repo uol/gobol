@@ -62,7 +62,7 @@ func NewHTTPTransport(configuration *HTTPTransportConfig) (*HTTPTransport, error
 		core: transportCore{
 			batchSendInterval: configuration.BatchSendInterval,
 			pointChannel:      make(chan interface{}, configuration.TransportBufferSize),
-			loggers:           logh.CreateContexts(true, false, false, true, false, false, "pkg", "timeline/http"),
+			loggers:           logh.CreateContextualLogger("pkg", "timeline/http"),
 		},
 		configuration: configuration,
 		httpClient:    util.CreateHTTPClient(configuration.RequestTimeout, true),
@@ -89,8 +89,8 @@ func (t *HTTPTransport) ConfigureBackend(backend *Backend) error {
 
 	t.serviceURL = fmt.Sprintf("http://%s:%d/%s", backend.Host, backend.Port, t.configuration.ServiceEndpoint)
 
-	if t.core.loggers.Info != nil {
-		t.core.loggers.Info.Msg(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL))
+	if logh.InfoEnabled {
+		t.core.loggers.Info().Msg(fmt.Sprintf("backend was configured to use service: %s", t.serviceURL))
 	}
 
 	return nil
