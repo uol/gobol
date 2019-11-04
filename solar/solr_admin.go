@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/uol/go-solr/solr"
+	"github.com/uol/gobol/logh"
 )
 
 /**
@@ -48,16 +49,16 @@ func (ss *SolrService) AddNewField(collection, name, fieldType string, multiValu
 		},
 	}
 
-	if ss.loggers.Info != nil {
-		ss.loggers.Info.Msg(fmt.Sprintf("adding new field to %s: %s", collection, name))
+	if logh.InfoEnabled {
+		ss.loggers.Info().Msg(fmt.Sprintf("adding new field to %s: %s", collection, name))
 	}
 
 	_, err = schema.Post("", data)
 	if err != nil {
 		msg := fmt.Sprintf("error adding field %s", name)
 
-		if ss.loggers.Error != nil {
-			ss.loggers.Error.Msg(msg)
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(msg)
 		}
 
 		if err != nil {
@@ -67,8 +68,8 @@ func (ss *SolrService) AddNewField(collection, name, fieldType string, multiValu
 		return errors.New(msg)
 	}
 
-	if ss.loggers.Info != nil {
-		ss.loggers.Info.Msg(fmt.Sprintf("new field added to collection %s: %s", collection, name))
+	if logh.InfoEnabled {
+		ss.loggers.Info().Msg(fmt.Sprintf("new field added to collection %s: %s", collection, name))
 	}
 
 	return nil
@@ -84,8 +85,8 @@ func (ss *SolrService) getSchema(collection string) (*solr.Schema, error) {
 
 	schema, err := si.Schema()
 	if err != nil {
-		if ss.loggers.Error != nil {
-			ss.loggers.Error.Msg("error retrieving a schema instance")
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg("error retrieving a schema instance")
 		}
 		return nil, err
 	}
@@ -106,8 +107,8 @@ func (ss *SolrService) CreateCollection(collection, configSet string, numShards,
 		params.Add("collection.configName", configSet)
 	}
 
-	if ss.loggers.Info != nil {
-		ss.loggers.Info.Msg(fmt.Sprintf("creating collection: %s", collection))
+	if logh.InfoEnabled {
+		ss.loggers.Info().Msg(fmt.Sprintf("creating collection: %s", collection))
 	}
 
 	r, err := ss.solrCollectionsAdmin.Action("CREATE", params)
@@ -115,14 +116,14 @@ func (ss *SolrService) CreateCollection(collection, configSet string, numShards,
 		return err
 	}
 	if r.Status != 0 {
-		if ss.loggers.Error != nil {
-			ss.loggers.Error.Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
 		}
 		return errors.New("collection creation failed")
 	}
 
-	if ss.loggers.Info != nil {
-		ss.loggers.Info.Msg(fmt.Sprintf("collection created: %s", collection))
+	if logh.InfoEnabled {
+		ss.loggers.Info().Msg(fmt.Sprintf("collection created: %s", collection))
 	}
 
 	return nil
@@ -131,8 +132,8 @@ func (ss *SolrService) CreateCollection(collection, configSet string, numShards,
 // DeleteCollection - deletes a collection
 func (ss *SolrService) DeleteCollection(collection string) error {
 
-	if ss.loggers.Info != nil {
-		ss.loggers.Info.Msg(fmt.Sprintf("deleting collection: %s", collection))
+	if logh.InfoEnabled {
+		ss.loggers.Info().Msg(fmt.Sprintf("deleting collection: %s", collection))
 	}
 
 	params := &url.Values{}
@@ -142,14 +143,14 @@ func (ss *SolrService) DeleteCollection(collection string) error {
 		return err
 	}
 	if r.Status != 0 {
-		if ss.loggers.Error != nil {
-			ss.loggers.Error.Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
 		}
 		return errors.New("collection remove failed")
 	}
 
-	if ss.loggers.Info != nil {
-		ss.loggers.Info.Msg(fmt.Sprintf("collection deleted: %s", collection))
+	if logh.InfoEnabled {
+		ss.loggers.Info().Msg(fmt.Sprintf("collection deleted: %s", collection))
 	}
 
 	return nil
@@ -163,8 +164,8 @@ func (ss *SolrService) ListCollections() ([]string, error) {
 		return nil, err
 	}
 	if r.Status != 0 {
-		if ss.loggers.Error != nil {
-			ss.loggers.Error.Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
 		}
 		return nil, errors.New("list collections failed")
 	}

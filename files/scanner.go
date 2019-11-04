@@ -21,17 +21,15 @@ type Scanner struct {
 	filesFound   []*File
 	ignoredFiles []*File
 	errorsFound  []error
-	loggers      *logh.EventLoggers
+	loggers      *logh.ContextualLogger
 }
 
 // NewScanner - builds a new Scanner
 func NewScanner(fileRegexp string, minFileSize int64) *Scanner {
 
-	eventLoggers := logh.CreateContexts(true, true, false, false, false, false, "pkg", "files/scanner")
+	eventLoggers := logh.CreateContextualLogger("pkg", "files/scanner")
 
-	if eventLoggers.Info != nil {
-		eventLoggers.Info.Msg(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize))
-	}
+	eventLoggers.Info().Msg(fmt.Sprintf("creating a new scanner using regexp '%s' and minimum file size '%d'", fileRegexp, minFileSize))
 
 	return &Scanner{
 		fileRegexp:  regexp.MustCompile(fileRegexp),
@@ -49,9 +47,7 @@ func (s *Scanner) visit(path string, f os.FileInfo, err error) error {
 	}
 
 	if f.IsDir() {
-		if s.loggers.Debug != nil {
-			s.loggers.Debug.Msg("ignoring directory:" + path)
-		}
+		s.loggers.Debug().Msg("ignoring directory:" + path)
 		return nil
 	}
 
@@ -64,14 +60,14 @@ func (s *Scanner) visit(path string, f os.FileInfo, err error) error {
 
 	if s.fileRegexp.MatchString(path) {
 
-		if s.loggers.Debug != nil {
-			s.loggers.Debug.Msg("file name matches with regexp: " + path)
+		if s.loggers.Debug() != nil {
+			s.loggers.Debug().Msg("file name matches with regexp: " + path)
 		}
 
 		if file.Size < s.minFileSize {
 
-			if s.loggers.Debug != nil {
-				s.loggers.Debug.Msg(fmt.Sprintf("file does not have the minimum size: %s (%d/%d)", path, file.Size, s.minFileSize))
+			if s.loggers.Debug() != nil {
+				s.loggers.Debug().Msg(fmt.Sprintf("file does not have the minimum size: %s (%d/%d)", path, file.Size, s.minFileSize))
 			}
 
 			file.Ignored = true

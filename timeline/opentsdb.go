@@ -63,7 +63,7 @@ func NewOpenTSDBTransport(configuration *OpenTSDBTransportConfig) (*OpenTSDBTran
 		core: transportCore{
 			batchSendInterval: configuration.BatchSendInterval,
 			pointChannel:      make(chan interface{}, configuration.TransportBufferSize),
-			loggers:           logh.CreateContexts(true, false, false, true, false, false, "pkg", "timeline/opentsdb"),
+			loggers:           logh.CreateContextualLogger("pkg", "timeline/opentsdb"),
 		},
 		configuration: configuration,
 		serializer:    s,
@@ -102,8 +102,8 @@ func (t *OpenTSDBTransport) DataChannel() chan<- interface{} {
 func (t *OpenTSDBTransport) recover() {
 
 	if r := recover(); r != nil {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg(fmt.Sprintf("recovered from: %s", r))
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg(fmt.Sprintf("recovered from: %s", r))
 		}
 	}
 }
@@ -147,8 +147,8 @@ func (t *OpenTSDBTransport) writePayload(payload string) bool {
 
 	err := t.connection.SetReadDeadline(time.Now().Add(t.configuration.MaxReadTimeout))
 	if err != nil {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg(fmt.Sprintf("error setting read deadline: %s", err.Error()))
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg(fmt.Sprintf("error setting read deadline: %s", err.Error()))
 		}
 		return false
 	}
@@ -163,8 +163,8 @@ func (t *OpenTSDBTransport) writePayload(payload string) bool {
 
 	err = t.connection.SetWriteDeadline(time.Now().Add(t.configuration.RequestTimeout))
 	if err != nil {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg(fmt.Sprintf("error writing on connection: %s", err.Error()))
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg(fmt.Sprintf("error writing on connection: %s", err.Error()))
 		}
 		return false
 	}
@@ -182,23 +182,23 @@ func (t *OpenTSDBTransport) writePayload(payload string) bool {
 func (t *OpenTSDBTransport) logConnectionError(err error, operation rwOp) {
 
 	if err == io.EOF {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg(fmt.Sprintf("[%s] connection EOF received, retrying connection...", operation))
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg(fmt.Sprintf("[%s] connection EOF received, retrying connection...", operation))
 		}
 
 		return
 	}
 
 	if castedErr, ok := err.(net.Error); ok && castedErr.Timeout() {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg(fmt.Sprintf("[%s] connection timeout received, retrying connection...", operation))
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg(fmt.Sprintf("[%s] connection timeout received, retrying connection...", operation))
 		}
 
 		return
 	}
 
-	if t.core.loggers.Error != nil {
-		t.core.loggers.Error.Msg(fmt.Sprintf("[%s] error executing operation on connection: %s", operation, err.Error()))
+	if logh.ErrorEnabled {
+		t.core.loggers.Error().Msg(fmt.Sprintf("[%s] error executing operation on connection: %s", operation, err.Error()))
 	}
 }
 
@@ -207,13 +207,13 @@ func (t *OpenTSDBTransport) closeConnection() {
 
 	err := t.connection.Close()
 	if err != nil {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg(err.Error())
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg(err.Error())
 		}
 	}
 
-	if t.core.loggers.Info != nil {
-		t.core.loggers.Info.Msg("connection closed")
+	if logh.InfoEnabled {
+		t.core.loggers.Info().Msg("connection closed")
 	}
 
 	t.connection = nil
@@ -278,31 +278,31 @@ func (t *OpenTSDBTransport) retryConnect() {
 		<-time.After(t.configuration.ReconnectionTimeout)
 	}
 
-	if t.core.loggers.Info != nil {
-		t.core.loggers.Info.Msg("connected!")
+	if logh.InfoEnabled {
+		t.core.loggers.Info().Msg("connected!")
 	}
 }
 
 // connect - connects the telnet client
 func (t *OpenTSDBTransport) connect() bool {
 
-	if t.core.loggers.Info != nil {
-		t.core.loggers.Info.Msg(fmt.Sprintf("connnecting to opentsdb telnet: %s:", t.address.String()))
+	if logh.InfoEnabled {
+		t.core.loggers.Info().Msg(fmt.Sprintf("connnecting to opentsdb telnet: %s:", t.address.String()))
 	}
 
 	var err error
 	t.connection, err = net.DialTCP("tcp", nil, t.address)
 	if err != nil {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Info.Msg(fmt.Sprintf("error connecting to address: %s", t.address.String()))
+		if logh.ErrorEnabled {
+			t.core.loggers.Info().Msg(fmt.Sprintf("error connecting to address: %s", t.address.String()))
 		}
 		return false
 	}
 
 	err = t.connection.SetDeadline(time.Time{})
 	if err != nil {
-		if t.core.loggers.Error != nil {
-			t.core.loggers.Error.Msg("error setting connection's deadline")
+		if logh.ErrorEnabled {
+			t.core.loggers.Error().Msg("error setting connection's deadline")
 		}
 		return false
 	}

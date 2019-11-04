@@ -55,7 +55,7 @@ type transportCore struct {
 	transport         Transport
 	batchSendInterval time.Duration
 	pointChannel      chan interface{}
-	loggers           *logh.EventLoggers
+	loggers           *logh.ContextualLogger
 }
 
 // DefaultTransportConfiguration - the default fields used by the transport configuration
@@ -91,8 +91,8 @@ func (c *DefaultTransportConfiguration) Validate() error {
 // Start - starts the transport
 func (t *transportCore) Start() error {
 
-	if t.loggers.Info != nil {
-		t.loggers.Info.Msg("starting transport...")
+	if logh.InfoEnabled {
+		t.loggers.Info().Msg("starting transport...")
 	}
 
 	go t.transferDataLoop()
@@ -103,8 +103,8 @@ func (t *transportCore) Start() error {
 // transferDataLoop - transfers the data to the backend throught this transport
 func (t *transportCore) transferDataLoop() {
 
-	if t.loggers.Info != nil {
-		t.loggers.Info.Msg("initializing transfer data loop...")
+	if logh.InfoEnabled {
+		t.loggers.Info().Msg("initializing transfer data loop...")
 	}
 
 outterFor:
@@ -120,8 +120,8 @@ outterFor:
 			case point, ok := <-t.pointChannel:
 
 				if !ok {
-					if t.loggers.Info != nil {
-						t.loggers.Info.Msg("breaking data transfer loop")
+					if logh.InfoEnabled {
+						t.loggers.Info().Msg("breaking data transfer loop")
 					}
 					break outterFor
 				}
@@ -136,24 +136,24 @@ outterFor:
 		numPoints = len(points)
 
 		if numPoints == 0 {
-			if t.loggers.Info != nil {
-				t.loggers.Info.Msg("buffer is empty, no data will be send")
+			if logh.InfoEnabled {
+				t.loggers.Info().Msg("buffer is empty, no data will be send")
 			}
 			continue
 		}
 
-		if t.loggers.Info != nil {
-			t.loggers.Info.Msg(fmt.Sprintf("sending a batch of %d points...", numPoints))
+		if logh.InfoEnabled {
+			t.loggers.Info().Msg(fmt.Sprintf("sending a batch of %d points...", numPoints))
 		}
 
 		err := t.transport.TransferData(points)
 		if err != nil {
-			if t.loggers.Error != nil {
-				t.loggers.Error.Msg(err.Error())
+			if logh.ErrorEnabled {
+				t.loggers.Error().Msg(err.Error())
 			}
 		} else {
-			if t.loggers.Info != nil {
-				t.loggers.Info.Msg(fmt.Sprintf("batch of %d points were sent!", numPoints))
+			if logh.InfoEnabled {
+				t.loggers.Info().Msg(fmt.Sprintf("batch of %d points were sent!", numPoints))
 			}
 		}
 
@@ -163,8 +163,8 @@ outterFor:
 // Close - closes the transport
 func (t *transportCore) Close() {
 
-	if t.loggers.Info != nil {
-		t.loggers.Info.Msg("closing...")
+	if logh.InfoEnabled {
+		t.loggers.Info().Msg("closing...")
 	}
 
 	close(t.pointChannel)
