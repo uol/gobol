@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -97,9 +98,9 @@ func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx := context.Background()
 
-	userTags := map[string]string{}
+	userTags := sync.Map{}
 
-	h.next.ServeHTTP(logw, r.WithContext(context.WithValue(ctx, statsTagskey, userTags)))
+	h.next.ServeHTTP(logw, r.WithContext(context.WithValue(ctx, statsTagskey, &userTags)))
 
 	status := logw.status
 
@@ -115,19 +116,20 @@ func (h *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tags["path"] = r.URL.Path
 	}
 
-	for k, v := range userTags {
-		tags[k] = v
-	}
+	userTags.Range(func(k, v interface{}) bool {
+		tags[k.(string)] = v.(string)
+		return true
+	})
 
 	h.increment("request.count", tags)
 	h.valueAdd("request.duration", tags, float64(d.Nanoseconds())/float64(time.Millisecond))
 }
 
 func AddStatsMap(r *http.Request, tags map[string]string) {
-	t, ok := r.Context().Value(statsTagskey).(map[string]string)
+	userTags, ok := r.Context().Value(statsTagskey).(*sync.Map)
 	if ok {
 		for k, v := range tags {
-			t[k] = v
+			userTags.Store(k, v)
 		}
 	}
 }
