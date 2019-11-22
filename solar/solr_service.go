@@ -191,16 +191,20 @@ func (ss *SolrService) DeleteDocumentByQuery(collection string, commit bool, que
 	doc := map[string]interface{}{}
 	doc["query"] = query
 
-	_, err = si.Delete(doc, params)
+	solrResponse, err := si.Delete(doc, params)
 	if err != nil {
 		if logh.ErrorEnabled {
-			ss.loggers.Error().Msg(fmt.Sprintf("error deleting document of collection %s with query %s: %s", collection, query, err.Error()))
+			ss.loggers.Error().Msgf("error deleting document of collection %s with query %s: %s", collection, query, err.Error())
 		}
 		return err
 	}
 
-	if logh.InfoEnabled {
-		ss.loggers.Info().Msg(fmt.Sprintf("deleted document(s) of collection %s with query %s", collection, query))
+	if !solrResponse.Success {
+		return fmt.Errorf("error deleting documents: %+v", solrResponse.Result)
+	}
+
+	if logh.DebugEnabled {
+		ss.loggers.Debug().Msgf("deleted document(s) of collection %s with query %s", collection, query)
 	}
 
 	return nil
