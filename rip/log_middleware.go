@@ -11,7 +11,6 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/rs/cors"
 	"github.com/uol/gobol/snitch"
-	"go.uber.org/zap"
 )
 
 type key int
@@ -44,8 +43,7 @@ func (w *LogResponseWriter) Header() http.Header {
 	return w.ResponseWriter.Header()
 }
 
-func NewLogMiddleware(service, system string, logger *zap.Logger, sts *snitch.Stats, next http.Handler, allowCORS bool) *LogHandler {
-	logger = logger.WithOptions(zap.AddStacktrace(zap.PanicLevel))
+func NewLogMiddleware(service, system string, sts *snitch.Stats, next http.Handler, allowCORS bool) *LogHandler {
 	var fullHandler http.Handler
 	if allowCORS {
 		fullHandler = cors.AllowAll().Handler(next)
@@ -56,7 +54,6 @@ func NewLogMiddleware(service, system string, logger *zap.Logger, sts *snitch.St
 		service:   service,
 		system:    system,
 		next:      fullHandler,
-		logger:    logger,
 		stats:     sts,
 		allowCORS: allowCORS,
 		connectionStatsTags: map[string]string{
@@ -70,7 +67,6 @@ type LogHandler struct {
 	service             string
 	system              string
 	next                http.Handler
-	logger              *zap.Logger
 	stats               *snitch.Stats
 	allowCORS           bool
 	connectionStatsTags map[string]string
@@ -137,38 +133,26 @@ func AddStatsMap(r *http.Request, tags map[string]string) {
 func (h *LogHandler) increment(metric string, tags map[string]string) {
 	err := h.stats.Increment(metric, tags, "@every 1m", false, true)
 	if err != nil {
-		h.logger.Error(
-			"",
-			zap.Error(err),
-			zap.String("package", "rip"),
-			zap.String("func", "statsIncrement"),
-			zap.String("metric", metric),
-		)
+		if eventLogger := getLogger(); eventLogger != nil {
+			eventLogger.Str("func", "increment").Str("metric", metric).Err(err)
+		}
 	}
 }
 
 func (h *LogHandler) valueAdd(metric string, tags map[string]string, v float64) {
 	err := h.stats.ValueAdd(metric, tags, "avg", "@every 1m", false, false, v)
 	if err != nil {
-		h.logger.Error(
-			"",
-			zap.Error(err),
-			zap.String("package", "rip"),
-			zap.String("func", "statsValueAdd"),
-			zap.String("metric", metric),
-		)
+		if eventLogger := getLogger(); eventLogger != nil {
+			eventLogger.Str("func", "valueAdd").Str("metric", metric).Err(err)
+		}
 	}
 }
 
 func (h *LogHandler) incrementHTTPConn() {
 	err := h.stats.Increment("network.connection", h.connectionStatsTags, "@every 10s", false, true)
 	if err != nil {
-		h.logger.Error(
-			"",
-			zap.Error(err),
-			zap.String("package", "rip"),
-			zap.String("func", "incrementHTTPConn"),
-			zap.String("metric", "network.connection"),
-		)
+		if eventLogger := getLogger(); eventLogger != nil {
+			eventLogger.Str("func", "incrementHTTPConn").Err(err)
+		}
 	}
 }

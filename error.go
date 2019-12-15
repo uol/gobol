@@ -1,12 +1,8 @@
 package gobol
 
-import (
-	"go.uber.org/zap/zapcore"
-)
-
+// Error - defines a common http error interface
 type Error interface {
 	error
 	StatusCode() int
 	Message() string
-	LogFields() []zapcore.Field
 }

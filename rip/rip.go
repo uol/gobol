@@ -6,23 +6,22 @@ import (
 	"log"
 	"net/http"
 
-	"go.uber.org/zap/zapcore"
+	"github.com/rs/zerolog"
+
+	"github.com/uol/gobol/logh"
 
 	"github.com/uol/gobol"
-
-	"go.uber.org/zap"
 )
 
 var (
-	logger          *zap.Logger
 	logErrorAsDebug bool
+	logger          *logh.ContextualLogger
 )
 
 type customError struct {
 	error
 	msg      string
 	httpCode int
-	lf       []zapcore.Field
 }
 
 func (e customError) Message() string {
@@ -31,10 +30,6 @@ func (e customError) Message() string {
 
 func (e customError) StatusCode() int {
 	return e.httpCode
-}
-
-func (e customError) LogFields() []zapcore.Field {
-	return e.lf
 }
 
 type Validator interface {
@@ -46,16 +41,30 @@ type errorJSON struct {
 	Message interface{} `json:"message,omitempty"`
 }
 
+func getLogger() *zerolog.Event {
+	if logger == nil {
+		return nil
+	}
+
+	var ev *zerolog.Event
+	if logErrorAsDebug {
+		if logh.DebugEnabled {
+			ev = logger.Debug()
+		}
+	} else {
+		if logh.ErrorEnabled {
+			ev = logger.Error()
+		}
+	}
+	return ev
+}
+
 func errBasic(f, s string, code int, e error) gobol.Error {
 	if e != nil {
 		return customError{
 			e,
 			s,
 			code,
-			[]zapcore.Field{
-				zap.String("package", "rest"),
-				zap.String("func", f),
-			},
 		}
 	}
 	return nil
@@ -65,8 +74,8 @@ func errUnmarshal(f string, e error) gobol.Error {
 	return errBasic(f, "Wrong JSON format", http.StatusBadRequest, e)
 }
 
-func SetLogger(l *zap.Logger, forceErrorToDebugLog bool) {
-	logger = l
+func SetLogger(forceErrorToDebugLog bool) {
+	logger = logh.CreateContextualLogger("pkg", "rip")
 	logErrorAsDebug = forceErrorToDebugLog
 }
 
@@ -129,12 +138,8 @@ func Fail(w http.ResponseWriter, gerr gobol.Error) {
 	defer func() {
 		if r := recover(); r != nil {
 
-			if logger != nil {
-				if logErrorAsDebug {
-					logger.Debug(gerr.Message(), gerr.LogFields()...)
-				} else {
-					logger.Error(gerr.Message(), gerr.LogFields()...)
-				}
+			if eventLogger := getLogger(); eventLogger != nil {
+				eventLogger.Err(gerr)
 			} else {
 				log.Println(gerr.Message())
 			}
@@ -160,12 +165,8 @@ func Fail(w http.ResponseWriter, gerr gobol.Error) {
 		}
 	}()
 
-	if logger != nil {
-		if logErrorAsDebug {
-			logger.Debug(gerr.Error(), gerr.LogFields()...)
-		} else {
-			logger.Error(gerr.Error(), gerr.LogFields()...)
-		}
+	if eventLogger := getLogger(); eventLogger != nil {
+		eventLogger.Err(gerr)
 	} else {
 		log.Println(gerr.Error())
 	}

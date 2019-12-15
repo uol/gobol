@@ -23,10 +23,6 @@ import:
   version: ~0.9.0
   subpackages:
   - solr
-- package: go.uber.org/zap
-  version: ~1.9.1
-  subpackages:
-  - zapcore
 - package: gopkg.in/yaml.v2
   version: ~2.2.2
 - package: github.com/jinzhu/gorm
