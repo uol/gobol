@@ -10,6 +10,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/rs/cors"
+	"github.com/uol/gobol/logh"
 	"github.com/uol/gobol/snitch"
 )
 
@@ -133,8 +134,8 @@ func AddStatsMap(r *http.Request, tags map[string]string) {
 func (h *LogHandler) increment(metric string, tags map[string]string) {
 	err := h.stats.Increment(metric, tags, "@every 1m", false, true)
 	if err != nil {
-		if eventLogger := getLogger(); eventLogger != nil {
-			eventLogger.Str("func", "increment").Str("metric", metric).Err(err)
+		if ev := logError(customError{msg: err.Error(), pkg: "log_middleware", function: "increment"}); ev != nil {
+			ev.Str("metric", metric)
 		}
 	}
 }
@@ -142,8 +143,8 @@ func (h *LogHandler) increment(metric string, tags map[string]string) {
 func (h *LogHandler) valueAdd(metric string, tags map[string]string, v float64) {
 	err := h.stats.ValueAdd(metric, tags, "avg", "@every 1m", false, false, v)
 	if err != nil {
-		if eventLogger := getLogger(); eventLogger != nil {
-			eventLogger.Str("func", "valueAdd").Str("metric", metric).Err(err)
+		if logh.ErrorEnabled {
+			logger.Error().Str("metric", metric).Str("pkg", "log_middleware").Str("func", "valueAdd").Err(err).Send()
 		}
 	}
 }
@@ -151,8 +152,8 @@ func (h *LogHandler) valueAdd(metric string, tags map[string]string, v float64) 
 func (h *LogHandler) incrementHTTPConn() {
 	err := h.stats.Increment("network.connection", h.connectionStatsTags, "@every 10s", false, true)
 	if err != nil {
-		if eventLogger := getLogger(); eventLogger != nil {
-			eventLogger.Str("func", "incrementHTTPConn").Err(err)
+		if logh.ErrorEnabled {
+			logger.Error().Str("pkg", "log_middleware").Str("func", "incrementHTTPConn").Err(err).Send()
 		}
 	}
 }

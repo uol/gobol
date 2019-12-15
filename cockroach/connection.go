@@ -115,7 +115,7 @@ func (c *Connection) Close() {
 	err := c.dbConnection.Close()
 	if err != nil {
 		if logh.ErrorEnabled {
-			c.logger.Error().Str("func", "Close").Err(err)
+			c.logger.Error().Str("func", "Close").Err(err).Send()
 		}
 	} else {
 		if logh.InfoEnabled {

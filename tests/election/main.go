@@ -32,7 +32,7 @@ func main() {
 
 	manager, err := election.New(&cfg)
 	if err != nil {
-		logh.Error().Err(err)
+		logh.Error().Err(err).Send()
 		os.Exit(0)
 	}
 
@@ -57,7 +57,7 @@ func main() {
 
 	ci, err := manager.GetClusterInfo()
 	if err != nil {
-		logh.Error().Err(err)
+		logh.Error().Err(err).Send()
 		os.Exit(0)
 	}
 

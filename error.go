@@ -5,4 +5,6 @@ type Error interface {
 	error
 	StatusCode() int
 	Message() string
+	Package() string
+	Function() string
 }

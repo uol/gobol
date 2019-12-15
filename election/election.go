@@ -310,7 +310,7 @@ func (m *Manager) listenForNodeEvents() error {
 			cluster, err := m.GetClusterInfo()
 			if err != nil {
 				if logh.ErrorEnabled {
-					m.logger.Error().Str("func", "listenForNodeEvents").Err(err)
+					m.logger.Error().Str("func", "listenForNodeEvents").Err(err).Send()
 				}
 			} else {
 				changed := false
