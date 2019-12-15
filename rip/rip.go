@@ -27,11 +27,11 @@ type customError struct {
 }
 
 func (e customError) Package() string {
-	return e.Package()
+	return e.pkg
 }
 
 func (e customError) Function() string {
-	return e.Function()
+	return e.function
 }
 
 func (e customError) Message() string {
