@@ -1,24 +1,38 @@
-hash: c5c812a6e78c192a0b4e447e299288f40c087266572f2705bc02e6b7e1b5c839
-updated: 2019-12-14T21:59:39.983480365-03:00
+hash: 9fad51e9fec1418e4d98ac79501f26874457d484ab5844d965492d41a4ec343a
+updated: 2019-12-16T20:04:47.252593271-03:00
 imports:
 - name: github.com/BurntSushi/toml
   version: 3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
 - name: github.com/gocql/gocql
-  version: 7b9e22ce80858541eb5d3712c337b22da7f2ff12
+  version: 1982a06ad6b987c24beec15336019914d71b2e31
+  subpackages:
+  - internal/lru
+  - internal/murmur
+  - internal/streams
+- name: github.com/golang/snappy
+  version: 2a8bb927dd31d8daada140a5d09578521ce5c36a
+- name: github.com/google/uuid
+  version: 0cd6bf5da1e1c83f8b45653022c74f71af0538a4
 - name: github.com/hailocab/go-hostpool
   version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
-- name: github.com/hashicorp/consul
-  version: 501c22b5563935713596034d47a1cbdef1ec1904
-  subpackages:
-  - api
 - name: github.com/jinzhu/gorm
   version: 81c17a7e2529c59efc4e74c5b32c1fb71fb12fa2
+- name: github.com/jinzhu/inflection
+  version: f5c5f50e6090ae76a29240b61ae2a90dd810112e
 - name: github.com/julienschmidt/httprouter
   version: 348b672cd90d8190f8240323e372ecd1e66b59dc
 - name: github.com/lib/pq
   version: 4ded0e9383f75c197b3a2aaa6d590ac52df6fd79
 - name: github.com/pborman/uuid
   version: adf5a7427709b9deb95d29d3fa8a2bf9cfd388f1
+- name: github.com/pmezard/go-difflib
+  version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
+  subpackages:
+  - difflib
 - name: github.com/robfig/cron
   version: b41be1df696709bb6395fe435af20370037c0b4c
 - name: github.com/rs/cors
@@ -26,21 +40,108 @@ imports:
 - name: github.com/rs/zerolog
   version: f1dd50b8c64d79be1392edf1d8fda5cedea4916d
   subpackages:
+  - internal/cbor
+  - internal/json
   - log
 - name: github.com/samuel/go-zookeeper
   version: 2cc03de413da42869e2db7ce7965d3e978d917eb
   subpackages:
   - zk
+- name: github.com/stretchr/testify
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  subpackages:
+  - assert
 - name: github.com/uol/go-solr
   version: 88954f7f66307d572c5fc59d6ba31d19a0ca9888
   subpackages:
   - solr
 - name: github.com/uol/serializer
   version: 0bbe4b09acd77a609dcc12f5890a9a147056a424
+  subpackages:
+  - json
+  - opentsdb
+  - serializer
+- name: go.uber.org/atomic
+  version: 40ae6a40a970ef4cdbffa7b24b280e316db8accc
+- name: go.uber.org/multierr
+  version: 824d08f79702fe5f54aca8400aa0d754318786e7
+- name: go.uber.org/tools
+  version: 2cfd321de3ee5d5f8a5fda2521d1703478334d98
+  subpackages:
+  - update-license
+- name: go.uber.org/zap
+  version: 33e58d4d0120aa28d4df84cd244838c490846c9d
+  subpackages:
+  - buffer
+  - internal/bufferpool
+  - internal/color
+  - internal/exit
+  - zapcore
+- name: golang.org/x/crypto
+  version: e9b2fee46413994441b28dfca259d911d963dfed
+  subpackages:
+  - sha3
+- name: golang.org/x/lint
+  version: fdd1cda4f05fd1fd86124f0ef9ce31a0b72c8448
+  subpackages:
+  - golint
+- name: golang.org/x/sys
+  version: ac6580df4449443a05718fd7858c1f91ad5f8d20
+  subpackages:
+  - cpu
+- name: golang.org/x/tools
+  version: 04c2e8eff935f58e9a5568b6b73542f91e0491e6
+  subpackages:
+  - go/analysis
+  - go/analysis/passes/inspect
+  - go/ast/astutil
+  - go/ast/inspector
+  - go/buildutil
+  - go/gcexportdata
+  - go/internal/cgo
+  - go/internal/gcimporter
+  - go/internal/packagesdriver
+  - go/loader
+  - go/packages
+  - go/types/objectpath
+  - go/types/typeutil
+  - internal/fastwalk
+  - internal/gopathwalk
+  - internal/semver
+- name: gopkg.in/inf.v0
+  version: d2d2541c53f18d2a059457998ce2876cc8e67cbf
 - name: gopkg.in/yaml.v2
   version: 1f64d6156d11335c3f22d9330b0ad14fc1e789ce
-testImports:
-- name: github.com/stretchr/testify
-  version: ""
+- name: honnef.co/go/tools
+  version: 32de78dc1c6c931f2bf017870750b0ca80006601
   subpackages:
-  - assert
+  - arg
+  - cmd/staticcheck
+  - code
+  - config
+  - deprecated
+  - edit
+  - facts
+  - functions
+  - go/types/typeutil
+  - internal/cache
+  - internal/passes/buildir
+  - internal/renameio
+  - internal/robustio
+  - internal/sharedcheck
+  - ir
+  - ir/irutil
+  - lint
+  - lint/lintdsl
+  - lint/lintutil
+  - lint/lintutil/format
+  - loader
+  - pattern
+  - printf
+  - report
+  - simple
+  - staticcheck
+  - stylecheck
+  - unused
+  - version
+testImports: []

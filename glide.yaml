@@ -4,10 +4,6 @@ import:
   version: ~0.3.1
 - package: github.com/gocql/gocql
 - package: github.com/hailocab/go-hostpool
-- package: github.com/hashicorp/consul
-  version: ~1.4.0
-  subpackages:
-  - api
 - package: github.com/julienschmidt/httprouter
   version: ~1.2.0
 - package: github.com/pborman/uuid

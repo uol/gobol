@@ -5,12 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/uol/gobol/saw"
-	"go.uber.org/zap"
 )
 
 // Has some useful functions used in the tests.
