@@ -5,25 +5,11 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/uol/gobol/saw"
-	"go.uber.org/zap"
 )
 
 // Has some useful functions used in the tests.
 // @author rnojiri
-
-// GetLogger - creates a test logger
-func GetLogger(t *testing.T) *zap.Logger {
-
-	logger, err := saw.New("DEBUG", "QA")
-	assert.NoError(t, err)
-
-	return logger
-}
 
 // GetScanPathRoot - build a scan path
 func GetScanPathRoot(path string) string {
