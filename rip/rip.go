@@ -42,6 +42,10 @@ func (e customError) StatusCode() int {
 	return e.httpCode
 }
 
+func (e customError) ErrorCode() string {
+	return ""
+}
+
 type Validator interface {
 	Validate() gobol.Error
 }
@@ -153,6 +157,14 @@ func Success(w http.ResponseWriter, statusCode int, payload []byte) {
 }
 
 func Fail(w http.ResponseWriter, gerr gobol.Error) {
+
+	var errorMessage string
+	if gerr.ErrorCode() == "" {
+		errorMessage = gerr.Message()
+	} else {
+		errorMessage = getMessageErrorCode(gerr)
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 
@@ -166,7 +178,7 @@ func Fail(w http.ResponseWriter, gerr gobol.Error) {
 			}
 
 			ej := errorJSON{
-				Message: gerr.Message(),
+				Message: errorMessage,
 			}
 
 			w.WriteHeader(gerr.StatusCode())
@@ -192,7 +204,7 @@ func Fail(w http.ResponseWriter, gerr gobol.Error) {
 
 	ej := errorJSON{
 		Error:   gerr.Error(),
-		Message: gerr.Message(),
+		Message: errorMessage,
 	}
 
 	w.WriteHeader(gerr.StatusCode())
@@ -203,4 +215,12 @@ func Fail(w http.ResponseWriter, gerr gobol.Error) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 	}
+}
+
+func getMessageErrorCode(gerr gobol.Error) string {
+
+	if msg, ok := mapErrorMessage[gerr.ErrorCode()]; ok {
+		return msg
+	}
+	return gerr.Message()
 }
