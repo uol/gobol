@@ -27,7 +27,6 @@ var mapErrorMessage map[string]string = make(map[string]string)
 
 // NewCustomRouterMapError returns a httprouter.Router and maps error code to error messages according to errorMessagesFile
 func NewCustomRouterMapError(errorMessagesFile string) *httprouter.Router {
-	fmt.Println("errorMessagesFile", errorMessagesFile)
 	err := loader.ConfJson(errorMessagesFile, &mapErrorMessage)
 	if err != nil {
 		fmt.Println(fmt.Sprintf("error loading config file %s: %s", errorMessagesFile, err.Error()))
