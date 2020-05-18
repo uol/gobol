@@ -2,7 +2,6 @@ package rip
 
 import (
 	"compress/gzip"
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -10,12 +9,14 @@ import (
 
 	"github.com/uol/logh"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/uol/gobol"
 )
 
 var (
 	logErrorAsDebug bool
 	logger          *logh.ContextualLogger
+	json            = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type customError struct {
