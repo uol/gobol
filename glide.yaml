@@ -8,13 +8,8 @@ import:
   version: ~1.2.0
 - package: github.com/pborman/uuid
   version: ~1.2.0
-- package: github.com/robfig/cron
-  version: ~1.1.0
-- package: github.com/samuel/go-zookeeper
-  subpackages:
-  - zk
 - package: github.com/uol/go-solr
-  version: ~0.9.0
+  version: ~0.9.3
   subpackages:
   - solr
 - package: gopkg.in/yaml.v2
