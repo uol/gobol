@@ -57,8 +57,8 @@ func NewSolrService(configuration *Configuration) (*SolrService, error) {
 		return nil, errors.New("null configuration")
 	}
 
-	queryClient := funks.CreateHTTPClientAdv(configuration.QueryClient.Timeout, true, configuration.QueryClient.NumSimultaneousConnections)
-	updateClient := funks.CreateHTTPClientAdv(configuration.UpdateClient.Timeout, true, configuration.UpdateClient.NumSimultaneousConnections)
+	queryClient := funks.CreateHTTPClientAdv(configuration.QueryClient.Timeout.Duration, true, configuration.QueryClient.NumSimultaneousConnections)
+	updateClient := funks.CreateHTTPClientAdv(configuration.UpdateClient.Timeout.Duration, true, configuration.UpdateClient.NumSimultaneousConnections)
 
 	sca, err := solr.NewCollectionsAdmin(configuration.URL, queryClient)
 	if err != nil {

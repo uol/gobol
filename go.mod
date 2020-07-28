@@ -11,7 +11,7 @@ require (
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/rs/zerolog v1.18.0
 	github.com/stretchr/testify v1.6.1
-	github.com/uol/funks v1.3.1 // indirect
+	github.com/uol/funks v1.3.1
 	github.com/uol/go-solr v0.10.1
 	github.com/uol/logh v1.0.1
 	github.com/uol/serializer v1.3.0 // indirect
