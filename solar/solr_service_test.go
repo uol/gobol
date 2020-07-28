@@ -30,7 +30,19 @@ func randStringBytes(n int) string {
 // initSolrService - initializes the solr service
 func initSolrService(t *testing.T) *SolrService {
 
-	ss, err := NewSolrService(solrURL)
+	c := &Configuration{
+		URL: solrURL,
+		QueryClient: HTTPClient{
+			NumSimultaneousConnections: 0,
+			Timeout:                    time.Minute,
+		},
+		UpdateClient: HTTPClient{
+			NumSimultaneousConnections: 0,
+			Timeout:                    time.Minute,
+		},
+	}
+
+	ss, err := NewSolrService(c)
 	if err != nil {
 		t.Errorf(err.Error())
 		panic(err)
