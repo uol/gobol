@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/uol/funks"
 	"github.com/uol/go-solr/solr"
+	"github.com/uol/restrictedhttpclient"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,13 +34,15 @@ func initSolrService(t *testing.T) *SolrService {
 
 	c := &Configuration{
 		URL: solrURL,
-		QueryClient: HTTPClient{
-			NumSimultaneousConnections: 0,
-			Timeout:                    time.Minute,
+		QueryClient: &restrictedhttpclient.Configuration{
+			MaxSimultaneousRequests:   0,
+			RequestTimeout:            *funks.ForceNewStringDuration("1m"),
+			SkipCertificateValidation: true,
 		},
-		UpdateClient: HTTPClient{
-			NumSimultaneousConnections: 0,
-			Timeout:                    time.Minute,
+		UpdateClient: &restrictedhttpclient.Configuration{
+			MaxSimultaneousRequests:   0,
+			RequestTimeout:            *funks.ForceNewStringDuration("1m"),
+			SkipCertificateValidation: true,
 		},
 	}
 
