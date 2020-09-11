@@ -53,7 +53,8 @@ func (e customError) ErrorCode() string {
 	return e.errorCode
 }
 
-func errBasic(function, msg, errorCode string, code int, e error) gobol.Error {
+// ErrBasic - a basic error
+func ErrBasic(function, msg, errorCode string, code int, e error) gobol.Error {
 	if e != nil {
 		return New(
 			e,
@@ -67,8 +68,8 @@ func errBasic(function, msg, errorCode string, code int, e error) gobol.Error {
 	return nil
 }
 
-// checkErrors - check if error list has a 'no record found' message or it has errors
-func checkErrors(errors []error) uint8 {
+// CheckErrors - check if error list has a 'no record found' message or it has errors
+func CheckErrors(errors []error) uint8 {
 
 	if errors != nil && len(errors) > 0 {
 
