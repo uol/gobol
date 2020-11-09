@@ -132,9 +132,13 @@ func (ss *SolrService) AddDocument(collection string, commit bool, doc *solr.Doc
 		params.Add(cCommit, cTrue)
 	}
 
-	_, err = si.Add([]solr.Document{*doc}, 0, params)
+	sr, err := si.Add([]solr.Document{*doc}, 0, params)
 	if err != nil {
 		return err
+	}
+
+	if sr.Result == nil || len(sr.Result) == 0 {
+		return fmt.Errorf("solr response is null")
 	}
 
 	return nil
@@ -162,9 +166,13 @@ func (ss *SolrService) AddDocuments(collection string, commit bool, docs ...solr
 		params.Add(cCommit, cTrue)
 	}
 
-	_, err = si.Add(docs, 0, params)
+	sr, err := si.Add(docs, 0, params)
 	if err != nil {
 		return err
+	}
+
+	if sr.Result == nil || len(sr.Result) == 0 {
+		return fmt.Errorf("solr response is null")
 	}
 
 	return nil
