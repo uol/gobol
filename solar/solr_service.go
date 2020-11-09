@@ -141,6 +141,14 @@ func (ss *SolrService) AddDocument(collection string, commit bool, doc *solr.Doc
 		return fmt.Errorf("solr response is null")
 	}
 
+	for _, v := range sr.Result {
+		rh := v.(solr.M)["result"].(map[string]interface{})["responseHeader"]
+		status := rh.(map[string]interface{})["status"]
+		if status.(float64) != 0 {
+			return fmt.Errorf("solr status is not as expected")
+		}
+	}
+
 	return nil
 }
 
@@ -173,6 +181,14 @@ func (ss *SolrService) AddDocuments(collection string, commit bool, docs ...solr
 
 	if sr.Result == nil || len(sr.Result) == 0 {
 		return fmt.Errorf("solr response is null")
+	}
+
+	for _, v := range sr.Result {
+		rh := v.(solr.M)["result"].(map[string]interface{})["responseHeader"]
+		status := rh.(map[string]interface{})["status"]
+		if status.(float64) != 0 {
+			return fmt.Errorf("solr status is not as expected")
+		}
 	}
 
 	return nil
