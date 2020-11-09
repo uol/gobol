@@ -1,9 +1,11 @@
 package solar
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/uol/go-solr/solr"
+	"github.com/uol/logh"
 )
 
 /**
@@ -62,6 +64,13 @@ func (ss *SolrService) SimpleQuery(collection, query, fields string, start, rows
 		return nil, err
 	}
 
+	if r.Status != 0 {
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
+		}
+		return nil, fmt.Errorf("received a non ok status: %d", r.Status)
+	}
+
 	return r, nil
 }
 
@@ -80,6 +89,13 @@ func (ss *SolrService) FilteredQuery(collection, query, fields string, start, ro
 	r, err := s.Result(nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if r.Status != 0 {
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
+		}
+		return nil, fmt.Errorf("received a non ok status: %d", r.Status)
 	}
 
 	return r, nil
@@ -134,6 +150,13 @@ func (ss *SolrService) Facets(collection, query, fields string, start, rows int,
 
 	if err != nil {
 		return nil, err
+	}
+
+	if r.Status != 0 {
+		if logh.ErrorEnabled {
+			ss.loggers.Error().Msg(fmt.Sprintf("received a non ok status: %d", r.Status))
+		}
+		return nil, fmt.Errorf("received a non ok status: %d", r.Status)
 	}
 
 	return r, nil
