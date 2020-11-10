@@ -132,9 +132,21 @@ func (ss *SolrService) AddDocument(collection string, commit bool, doc *solr.Doc
 		params.Add(cCommit, cTrue)
 	}
 
-	_, err = si.Add([]solr.Document{*doc}, 0, params)
+	sr, err := si.Add([]solr.Document{*doc}, 0, params)
 	if err != nil {
 		return err
+	}
+
+	if sr.Result == nil || len(sr.Result) == 0 {
+		return fmt.Errorf("solr response is null")
+	}
+
+	for _, v := range sr.Result {
+		rh := v.(solr.M)["result"].(map[string]interface{})["responseHeader"]
+		status := rh.(map[string]interface{})["status"]
+		if status.(float64) != 0 {
+			return fmt.Errorf("received a non ok status: %f", status.(float64))
+		}
 	}
 
 	return nil
@@ -162,9 +174,21 @@ func (ss *SolrService) AddDocuments(collection string, commit bool, docs ...solr
 		params.Add(cCommit, cTrue)
 	}
 
-	_, err = si.Add(docs, 0, params)
+	sr, err := si.Add(docs, 0, params)
 	if err != nil {
 		return err
+	}
+
+	if sr.Result == nil || len(sr.Result) == 0 {
+		return fmt.Errorf("solr response is null")
+	}
+
+	for _, v := range sr.Result {
+		rh := v.(solr.M)["result"].(map[string]interface{})["responseHeader"]
+		status := rh.(map[string]interface{})["status"]
+		if status.(float64) != 0 {
+			return fmt.Errorf("received a non ok status: %f", status.(float64))
+		}
 	}
 
 	return nil
