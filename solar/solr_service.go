@@ -145,7 +145,7 @@ func (ss *SolrService) AddDocument(collection string, commit bool, doc *solr.Doc
 		rh := v.(solr.M)["result"].(map[string]interface{})["responseHeader"]
 		status := rh.(map[string]interface{})["status"]
 		if status.(float64) != 0 {
-			return fmt.Errorf("solr status is not as expected")
+			return fmt.Errorf("received a non ok status: %f", status.(float64))
 		}
 	}
 
@@ -187,7 +187,7 @@ func (ss *SolrService) AddDocuments(collection string, commit bool, docs ...solr
 		rh := v.(solr.M)["result"].(map[string]interface{})["responseHeader"]
 		status := rh.(map[string]interface{})["status"]
 		if status.(float64) != 0 {
-			return fmt.Errorf("solr status is not as expected")
+			return fmt.Errorf("received a non ok status: %f", status.(float64))
 		}
 	}
 
